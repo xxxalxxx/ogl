@@ -1,53 +1,47 @@
 #ifndef ALM_WINDOW_H
 #define ALM_WINDOW_H
-
-#define INITIAL_WINDOW_WIDTH 800
-#define INITIAL_WINDOW_HEIGHT 600
-
-#define GLEW_STATIC
-
 #include <iostream>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
+#define INITIAL_WINDOW_WIDTH 800
+#define INITIAL_WINDOW_HEIGHT 600
+
 class Window
 {
-    friend struct GLFWwindow;
 public:
     Window();
-    ~Window();
-    bool init();
-    bool isOpened();
+    ~Window(); 
+    GLFWwindow* getGLFWwindow();
+    bool init(); 
+    bool isOpen();
+
     int getHeight();
     int getWidth();
-    void pollEvents();
-    void swapBuffers();
-private:
-    static void frameBufferSizeCallback(GLFWwindow* window, int width, int height);
+    float getAspect();
 
-   GLFWwindow  *mWindow;
-    int mHeight, mWidth;
+    void setHeight(int height);
+    void setWidth(int width);  
+
+    void update(int width, int height);
+private:
+    int mWidth, mHeight;
+    GLFWwindow* mGLFWwindow;
 };
 
-inline bool Window::isOpened()
+inline Window::Window(): mWidth(INITIAL_WINDOW_WIDTH), mHeight(INITIAL_WINDOW_HEIGHT), mGLFWwindow(nullptr)
 {
-    return !glfwWindowShouldClose(mWindow);
+    
 }
 
-inline void Window::pollEvents()
+inline Window::~Window()
 {
-    glfwPollEvents();
+    glfwTerminate();
 }
 
-inline void Window::swapBuffers()
+inline bool Window::isOpen()
 {
-    glfwSwapBuffers(mWindow);
-}
-
-
-inline int Window::getWidth()
-{
-    return mWidth;
+    return !glfwWindowShouldClose(mGLFWwindow);
 }
 
 inline int Window::getHeight()
@@ -55,7 +49,30 @@ inline int Window::getHeight()
     return mHeight;
 }
 
+inline int Window::getWidth()
+{
+    return mWidth;
+}
 
+inline float Window::getAspect()
+{
+    return (float) mWidth/mHeight;
+}
 
+inline void Window::setWidth(int width)
+{
+   mWidth = width; 
+}
+
+inline void Window::setHeight(int height)
+{
+    mHeight = height;
+}
+
+inline void Window::update(int width, int height)
+{
+    setWidth(width);
+    setHeight(height);
+}
 
 #endif
