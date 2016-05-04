@@ -1,5 +1,5 @@
-#ifndef ALM_WINDOW_H
-#define ALM_WINDOW_H
+#ifndef ALM_ENGINE_H
+#define ALM_ENGINE_H
 
 #define GLEW_STATIC
 
@@ -9,10 +9,11 @@
 #include "glm/mat4x4.hpp"
 #include "glm/vec3.hpp"
 #include "glm/gtc/matrix_transform.hpp"
+
 #include "Window.h"
 #include "Camera.h"
-
 #include "Timer.h"
+
 class Engine
 {
 public:
@@ -81,6 +82,7 @@ inline void Engine::swapBuffers()
 
 inline void setFramebufferSizeCallback(GLFWframebuffersizefun cbfun)
 {
+    GLFWwindow* glfwWindow = mWindow.getGLFWwindow();
     glfwSetFramebufferSizeCallback(mWindow.getGLFWwindow(), cbfun);
 }
 

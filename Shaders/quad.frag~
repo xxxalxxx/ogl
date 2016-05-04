@@ -1,5 +1,5 @@
 #version 330 core
-in vec2 v_TexCoord;
+in vec3 v_TexCoord;
 in vec3 v_Pos;
 uniform sampler2D u_Sampler;
 

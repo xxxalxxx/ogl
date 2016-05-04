@@ -1,5 +1,5 @@
-#ifndef ALM_WINDOW_H
-#define ALM_WINDOW_H
+#ifndef ALM_ENGINE_H
+#define ALM_ENGINE_H
 
 #define GLEW_STATIC
 
@@ -80,7 +80,7 @@ inline void Engine::swapBuffers()
     glfwSwapBuffers(mWindow.getGLFWwindow());
 }
 
-inline void setFramebufferSizeCallback(GLFWframebuffersizefun cbfun)
+inline void Engine::setFramebufferSizeCallback(GLFWframebuffersizefun cbfun)
 {
     glfwSetFramebufferSizeCallback(mWindow.getGLFWwindow(), cbfun);
 }

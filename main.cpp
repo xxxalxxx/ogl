@@ -1,10 +1,11 @@
 #include <iostream>
 #include "Engine.h"
 
-#include "shader.h"
+#include "Shader.h"
 #include "Quad.h"
-#include "Window.h"
+
 #include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 #include "glm/mat4x4.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -23,7 +24,9 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
 
 void cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {
-   // std::cout<< "MOUSE POS " << xpos << " " << ypos << std::endl;
+    Camera& engCamera = Engine::getEngineInstance(window)->getCamera();
+    engCamera.updateOrientation(xpos, ypos);
+    engCamera.rebuildView();
 }
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
@@ -80,6 +83,7 @@ void framebufferSizeCallback(GLFWwindow* window, int width, int height)
     engWindow.update(width, height);
     engCamera.setAspect(engWindow.getAspect());
     engCamera.rebuildPerspective();
+
     glViewport(0, 0, width, height);
 }
 
@@ -95,12 +99,14 @@ int main()
     engine.setScrollCallback(scrollCallback);
     engine.setFramebufferSizeCallback(framebufferSizeCallback);
 
-    Shader quadShader("Shaders/quad.vert","Shaders/quad.frag");
-  //  if(!quadShader.init("Shaders/quad.vert","Shaders/quad.frag")) return -1;
-    quadShader.Use();
+  //  Shader quadShader("Shaders/quad.vert","Shaders/quad.frag");
+   // quadShader.Use();
 
+    Shader quadShader;
+    if(!quadShader.init("Shaders/quad.vert","Shaders/quad.frag")) return -1;
+    quadShader.use();
     Quad quad;
-    quad.init();
+    quad.init(quadShader.getProgram(), "res/img.jpg");
 
     glm::mat4& proj = engine.getCamera().getProj();
     glm::mat4& view = engine.getCamera().getView();
@@ -108,14 +114,14 @@ int main()
     while(engine.windowIsOpen())
     {
         float dt = engine.getDt();
-        glm::mat4 viewProj = proj * view;
-
+    
+        glm::mat4 viewProj = proj * view; 
         engine.pollEvents();
        
         glClearColor(0.0f,0.0f,0.3f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        quad.draw(viewProj, quadShader.Program, dt);
+        quad.draw(viewProj, dt);
        // std::cout<< "HELLO " << window.getWidth() <<" " << window.getHeight() << std::endl;
 
         engine.swapBuffers();

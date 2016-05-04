@@ -7,24 +7,21 @@ Shader::Shader()
 }
 
 bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPath)
-{
+{ 
+    GLint status;
     bool result = true;
     const char* vertexShaderString = getFileString(vertexShaderPath);
 
     GLuint vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShaderHandle, 1, &vertexShaderString, NULL);
     glCompileShader(vertexShaderHandle);
-  //  delete[] vertexShaderString;
+    delete[] vertexShaderString;
 
-    GLint status;
     glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS , &status);
-    
-    std::cout<< vertexShaderString <<std::endl; 
-    
+
     if(status == GL_FALSE)
     {
-  std::cout<< "e1" <<std::endl; 
-       logCompileError(vertexShaderHandle);
+        logCompileError(vertexShaderHandle);
         result = false;  
     }
     
@@ -35,19 +32,15 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
     GLuint fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShaderHandle, 1, &fragmentShaderString, NULL);
     glCompileShader(fragmentShaderHandle);
-    //delete[] fragmentShaderString;
+    delete[] fragmentShaderString;
 
-    glGetShaderiv(vertexShaderHandle, GL_COMPILE_STATUS , &status);
+    glGetShaderiv(fragmentShaderHandle, GL_COMPILE_STATUS , &status);
 
     if(status == GL_FALSE)
     {
-  std::cout<< "e2" <<std::endl; 
-       logCompileError(fragmentShaderHandle);
+        logCompileError(fragmentShaderHandle);
         result = false;
     }
-
-      std::cout<< fragmentShaderString <<std::endl; 
-
 
     mProgram = glCreateProgram();
     glAttachShader(mProgram, vertexShaderHandle);
@@ -86,6 +79,8 @@ char* Shader::getFileString(const GLchar* path)
 
     rewind(file);
     fread(fileString, sizeof(char), size, file);
+    fclose(file);
+
     return fileString;
 }
 
@@ -93,7 +88,7 @@ void Shader::logCompileError(GLuint handle)
 {
      GLint infoLogLength;
      glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &infoLogLength);
-     char* infoLog = new char[infoLogLength];
+     GLchar* infoLog = new char[infoLogLength];
      glGetShaderInfoLog(handle, infoLogLength, NULL, infoLog);
      std::cout<< "Shader compile error:" << std::endl << infoLog << std::endl;
      delete[] infoLog;

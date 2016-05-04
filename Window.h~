@@ -75,4 +75,9 @@ inline void Window::update(int width, int height)
     setHeight(height);
 }
 
+inline GLFWwindow* Window::getGLFWwindow()
+{
+    return mGLFWwindow;
+}
+
 #endif

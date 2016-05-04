@@ -13,6 +13,7 @@ public:
     bool init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPath);
     void use();
     GLuint getProgram();
+    
 private:
     char* getFileString(const GLchar* path);
     void logCompileError(GLuint handle);

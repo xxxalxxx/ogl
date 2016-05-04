@@ -11,11 +11,11 @@ Quad::~Quad()
 }
 
 
-void Quad::init()
+void Quad::init(GLuint program, const char* texturePath)
 {
-    initShaders();
     initBuffers();
-    initTextures();
+    initUniforms(program);
+    initTextures(texturePath);
     
     mModel = glm::mat4();
 }
@@ -30,6 +30,7 @@ void Quad::initBuffers()
         -1.0f, -1.0f, 0.0f,    0.0f, 0.0f, // Bottom Left
         -1.0f,  1.0f, 0.0f,     0.0f, 1.0f  // Top Left 
     };
+
     GLuint indices[] = {
         0, 1, 3, // First Triangle
         1, 2, 3  // Second Triangle
@@ -60,18 +61,20 @@ void Quad::initBuffers()
     
 }
 
-void Quad::initShaders()
-{   
-
+void Quad::initUniforms(GLuint program)
+{
+    Uniforms.program = program;
+    Uniforms.MVP = glGetUniformLocation(program, "u_MVP");
+    Uniforms.sampler = glGetUniformLocation(program, "u_Sampler");
 }
 
-void Quad::initTextures()
+void Quad::initTextures(const char* texturePath)
 {
-    glGenTextures(1, &mTexture);
-    glBindTexture(GL_TEXTURE_2D, mTexture);
+    glGenTextures(1, &Uniforms.texture);
+    glBindTexture(GL_TEXTURE_2D, Uniforms.texture);
 
     int w, h;
-    unsigned char* img = SOIL_load_image("res/img.jpg", &w, &h, 0, SOIL_LOAD_RGB);
+    unsigned char* img = SOIL_load_image(texturePath, &w, &h, 0, SOIL_LOAD_RGB);
     
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
     glGenerateMipmap(GL_TEXTURE_2D);
@@ -80,15 +83,14 @@ void Quad::initTextures()
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void Quad::draw(const glm::mat4& viewProj, GLuint program, float dt)
+void Quad::draw(const glm::mat4& viewProj, float dt)
 {
    
     glm::mat4 MVP = viewProj * mModel;
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mTexture);
-    GLuint MVPHandle = glGetUniformLocation(program, "u_MVP");
-    glUniformMatrix4fv(MVPHandle, 1, GL_FALSE, glm::value_ptr(MVP) );
-    glUniform1i(glGetUniformLocation(program, "u_Sampler"), 0);
+    glBindTexture(GL_TEXTURE_2D, Uniforms.texture);
+    glUniformMatrix4fv(Uniforms.MVP, 1, GL_FALSE, glm::value_ptr(MVP) );
+    glUniform1i(Uniforms.sampler, 0);
 
     glBindVertexArray(mVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);

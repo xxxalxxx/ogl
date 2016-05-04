@@ -29,7 +29,7 @@ private:
     GLFWwindow* mGLFWwindow;
 };
 
-Window::Window(): mWidth(INITIAL_WINDOW_WIDTH), mHeight(INITIAL_WINDOW_HEIGHT), mGLFWwindow(nullptr)
+inline Window::Window(): mWidth(INITIAL_WINDOW_WIDTH), mHeight(INITIAL_WINDOW_HEIGHT), mGLFWwindow(nullptr)
 {
     
 }
@@ -73,6 +73,11 @@ inline void Window::update(int width, int height)
 {
     setWidth(width);
     setHeight(height);
+}
+
+inline GLFWwindow* Window::getGLFWwindow()
+{
+    return mGLFWwindow;
 }
 
 #endif

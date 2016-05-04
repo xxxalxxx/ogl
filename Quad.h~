@@ -13,21 +13,23 @@ class Quad
 public:
     Quad();
     ~Quad();
-    void init();
-    void initBuffers();
-    void initShaders();
-    void initTextures();
-    
+    void init(GLuint program, const char* texturePath);
+      
     void update(float dt);
-    void draw(const glm::mat4& viewProj, GLuint program, float dt);
+    void draw(const glm::mat4& viewProj, float dt);
 
     void unload();
 private:
+
+    void initBuffers();
+    void initTextures(const char* texturePath);
+    void initUniforms(GLuint program);
+
     GLuint mVBO, mVAO, mEBO;
-    GLuint* mProgram;
-    GLuint mTexture;
-    GLuint mMVP;
+
     glm::mat4 mModel;
+
+    struct Uniforms {GLuint program, MVP, texture, sampler } Uniforms;
 
 
 };
