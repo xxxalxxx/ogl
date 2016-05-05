@@ -34,6 +34,11 @@ bool Engine::init()
     return true;
 }
 
+bool Engine::keyIsPressed(int key)
+{
+    return glfwGetKey(mWindow.getGLFWwindow(), key) == GLFW_PRESS;
+}
+
 Engine* Engine::getEngineInstance(GLFWwindow* window)
 {
     return static_cast<Engine*>(glfwGetWindowUserPointer(window));

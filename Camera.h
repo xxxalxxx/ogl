@@ -13,24 +13,17 @@
 #define INITIAL_NEAR_PLANE 0.1f
 #define INITIAL_FAR_PLANE 100.0f
 #define INITIAL_FOV_RADIANS ((float)M_PI_4)
-#define INITIAL_FORWARD_MOVEMENT_SCALAR 0.1f
-#define INITIAL_SIDEWAYS_MOVEMENT_SCALAR 0.1f
-
-#define INITIAL_MOUSE_SENSITIVITY_SCALAR 0.05f;
-
-#define MAX_FOV_RADIANS ((float)M_PI)
-#define MIN_FOV_RADIANS 0.0f
-
-#define UP glm::vec3(0.0f,1.0f,0.0f)
-#define RIGHT glm::vec3(1.0f,0.0f,0.0f)
+#define INITIAL_FORWARD_MOVEMENT_SCALAR 10.0f
+#define INITIAL_SIDEWAYS_MOVEMENT_SCALAR 10.0f
+#define INITIAL_FOV_SCALAR 2.0f
+#define INITIAL_MOUSE_SENSITIVITY_SCALAR 0.001f
 
 class Camera
 {
 public:
     Camera(float aspect);
-    void setOrientaion();
     void updateOrientation(double mouseX, double mouseY);
-
+    void updateFOV(double scrollDirection);
     void rebuildView();
     void rebuildPerspective();
 
@@ -40,28 +33,30 @@ public:
     void setAspect(float aspect);
 
     glm::mat4& getProj();
-    glm::mat4& getView();
-    
-     
+    glm::mat4& getView(); 
     float getFOV();
 
-private:
+    void moveStraight(float direction, float dt);
+    void moveSideways(float direction, float dt);
 
+private:
     float mNear, mFar, mFOV, mAspect;
     float mPitch, mYaw;
     float mForwardMovementScalar, mSidewaysMovementScalar, mMouseSensitivityScalar;
     double mPrevMouseX, mPrevMouseY;
-    glm::vec3 mEye, mAt, mUp, mRight, mForward;
-    glm::mat4 mProj, mView;
-    glm::mat4 mOrientaion;
-    glm::mat4 mTranslation;
+    glm::vec3 mEye; 
+    const static glm::vec3 UP, RIGHT;
+    const static float MAX_FOV_RADIANS, MIN_FOV_RADIANS;
+
+    glm::mat4 mProj, mView; 
  
 };
 
-inline Camera::Camera(float aspect): mNear(INITIAL_NEAR_PLANE), mFar(INITIAL_FAR_PLANE), mFOV(INITIAL_FOV_RADIANS), mAspect(aspect), mPitch(0.0f), mYaw(0.0f), mEye(0.0f, 0.0f,-4.0f), mAt(0.0f,0.0f,0.0f), mUp(UP), mRight(RIGHT)
-{ 
-    mForward = mAt - mEye;
-    mTranslation = glm::translate(glm::mat4(1.0f), mEye);
+inline Camera::Camera(float aspect): mNear(INITIAL_NEAR_PLANE), mFar(INITIAL_FAR_PLANE), 
+mFOV(INITIAL_FOV_RADIANS), mAspect(aspect), 
+mPitch(0.0f), mYaw(0.0f),
+mForwardMovementScalar(INITIAL_FORWARD_MOVEMENT_SCALAR), mSidewaysMovementScalar(INITIAL_SIDEWAYS_MOVEMENT_SCALAR), mMouseSensitivityScalar(INITIAL_MOUSE_SENSITIVITY_SCALAR),mEye(0.0f, 0.0f, 4.0f) 
+{
     rebuildView();
     rebuildPerspective();
 }

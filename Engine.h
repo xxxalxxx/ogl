@@ -21,7 +21,8 @@ public:
     ~Engine();
     bool init();
     bool windowIsOpen();
-
+    bool keyIsPressed(int key);
+    
     void pollEvents();
     void swapBuffers();
 
@@ -35,8 +36,8 @@ public:
     void setKeyCallback(GLFWkeyfun cbfun);
     void setCursorPosCallback(GLFWcursorposfun cbfun);
     void setMouseButtonCallback(GLFWmousebuttonfun cbfun);
+   
     static Engine* getEngineInstance(GLFWwindow* window);
-
 private:
     Window mWindow;
     Camera mCamera;

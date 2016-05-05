@@ -19,14 +19,15 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     {
         std::cout<< "E PRESSED" <<std::endl;
     }
-
-}
+    else if(key == GLFW_KEY_E && action == GLFW_REPEAT)
+        std::cout<< "E REPEAT" <<std::endl;
+   
+  }
 
 void cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {
     Camera& engCamera = Engine::getEngineInstance(window)->getCamera();
     engCamera.updateOrientation(xpos, ypos);
-    engCamera.rebuildView();
 }
 
 void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
@@ -71,6 +72,9 @@ void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 
 void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
 {
+    Camera& engCamera = Engine::getEngineInstance(window)->getCamera();
+    engCamera.updateFOV(yoffset);
+    engCamera.rebuildPerspective();
     std::cout<< "SCROLL POS " << xoffset << " " << yoffset << std::endl;
 }
 
@@ -99,30 +103,38 @@ int main()
     engine.setScrollCallback(scrollCallback);
     engine.setFramebufferSizeCallback(framebufferSizeCallback);
 
-  //  Shader quadShader("Shaders/quad.vert","Shaders/quad.frag");
-   // quadShader.Use();
-
     Shader quadShader;
     if(!quadShader.init("Shaders/quad.vert","Shaders/quad.frag")) return -1;
     quadShader.use();
     Quad quad;
     quad.init(quadShader.getProgram(), "res/img.jpg");
 
-    glm::mat4& proj = engine.getCamera().getProj();
-    glm::mat4& view = engine.getCamera().getView();
-
+    Camera& camera = engine.getCamera();
+    glm::mat4& proj = camera.getProj();
+    glm::mat4& view = camera.getView();   
     while(engine.windowIsOpen())
-    {
+    { 
+
+      
         float dt = engine.getDt();
     
         glm::mat4 viewProj = proj * view; 
         engine.pollEvents();
+
+        if(engine.keyIsPressed(GLFW_KEY_W))
+            camera.moveStraight(1.0f, dt);
+        if(engine.keyIsPressed(GLFW_KEY_S))
+            camera.moveStraight(-1.0f, dt);
+        if(engine.keyIsPressed(GLFW_KEY_D))
+            camera.moveSideways(1.0f, dt);
+        if(engine.keyIsPressed(GLFW_KEY_A))
+            camera.moveSideways(-1.0f, dt);
+
        
         glClearColor(0.0f,0.0f,0.3f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
         quad.draw(viewProj, dt);
-       // std::cout<< "HELLO " << window.getWidth() <<" " << window.getHeight() << std::endl;
 
         engine.swapBuffers();
     }
