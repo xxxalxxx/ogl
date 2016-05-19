@@ -34,6 +34,21 @@ bool Engine::init()
     return true;
 }
 
+void Engine::handleCameraMovement(float dt)
+{
+    Camera& camera = getCamera();
+
+    if(keyIsPressed(GLFW_KEY_W))
+        camera.moveStraight(1.0f, dt);
+    if(keyIsPressed(GLFW_KEY_S))
+        camera.moveStraight(-1.0f, dt);
+
+    if(keyIsPressed(GLFW_KEY_D))
+        camera.moveSideways(1.0f, dt);
+    if(keyIsPressed(GLFW_KEY_A))
+        camera.moveSideways(-1.0f, dt);
+}
+
 bool Engine::keyIsPressed(int key)
 {
     return glfwGetKey(mWindow.getGLFWwindow(), key) == GLFW_PRESS;

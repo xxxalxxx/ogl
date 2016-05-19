@@ -11,7 +11,13 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
     GLint status;
     bool result = true;
     const char* vertexShaderString = getFileString(vertexShaderPath);
-
+    if(!vertexShaderString)
+    {
+        std::cout << "File at path "<< vertexShaderPath << " not found." << std::endl;
+        return false;
+    }
+  
+  //  std::cout<< vertexShaderString <<"init shader\n";
     GLuint vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShaderHandle, 1, &vertexShaderString, NULL);
     glCompileShader(vertexShaderHandle);
@@ -28,7 +34,13 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
 
 
     const char* fragmentShaderString = getFileString(fragmentShaderPath);
-    
+ 
+    if(!vertexShaderString)
+    {
+        std::cout << "File at path "<< fragmentShaderPath << " not found." << std::endl;
+        return false;
+    }
+
     GLuint fragmentShaderHandle = glCreateShader(GL_FRAGMENT_SHADER);
     glShaderSource(fragmentShaderHandle, 1, &fragmentShaderString, NULL);
     glCompileShader(fragmentShaderHandle);
@@ -71,7 +83,9 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
 char* Shader::getFileString(const GLchar* path)
 {
     FILE* file = fopen(path,"r");
-    
+
+    if(!file) return NULL;
+
     fseek(file,0, SEEK_END);
     size_t size = ftell(file);
     

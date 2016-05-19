@@ -2,12 +2,9 @@
 #include "Engine.h"
 
 #include "Shader.h"
-#include "Quad.h"
-
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
-#include "glm/mat4x4.hpp"
-#include "glm/gtc/matrix_transform.hpp"
+//#include "Quad.h"
+#include "model.h" 
+//#include "Model.h"
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
@@ -22,7 +19,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     else if(key == GLFW_KEY_E && action == GLFW_REPEAT)
         std::cout<< "E REPEAT" <<std::endl;
    
-  }
+}
 
 void cursorPosCallback(GLFWwindow* window, double xpos, double ypos)
 {
@@ -102,16 +99,37 @@ int main()
     engine.setMouseButtonCallback(mouseButtonCallback);
     engine.setScrollCallback(scrollCallback);
     engine.setFramebufferSizeCallback(framebufferSizeCallback);
+    
+    glEnable(GL_DEPTH_TEST);
 
+
+
+    Shader modelShader;
+    if(!modelShader.init("Shaders/shader.vs", "Shaders/shader.frag")) return -1;
+    modelShader.use();
+    Model modelNanosuit(
+           "res/mesh/guard/boblampclean.md5mesh", // "res/mesh/police/Police.obj",
+           "res/mesh/guard/",// "res/mesh/police/Texture", 
+            modelShader
+            );
+
+
+/*
     Shader quadShader;
     if(!quadShader.init("Shaders/quad.vert","Shaders/quad.frag")) return -1;
     quadShader.use();
     Quad quad;
-    quad.init(quadShader.getProgram(), "res/img.jpg");
+    quad.init(quadShader.getProgram(), "res/img.jpg");*/
+
+   // Model modelNanosuit;
+   // modelNanosuit.init(modelShader.getProgram(), "res/mesh/nanosuit/nanosuit.obj");
+   // glm::mat4 modelNanosuitModelMatrix = glm::mat4(1.0f);
+   // modelNanosuit.update(modelNanosuitModelMatrix, 0.0f);
 
     Camera& camera = engine.getCamera();
     glm::mat4& proj = camera.getProj();
-    glm::mat4& view = camera.getView();   
+    glm::mat4& view = camera.getView();
+
     while(engine.windowIsOpen())
     { 
 
@@ -120,22 +138,17 @@ int main()
     
         glm::mat4 viewProj = proj * view; 
         engine.pollEvents();
+        engine.handleCameraMovement(dt);
 
-        if(engine.keyIsPressed(GLFW_KEY_W))
-            camera.moveStraight(1.0f, dt);
-        if(engine.keyIsPressed(GLFW_KEY_S))
-            camera.moveStraight(-1.0f, dt);
-        if(engine.keyIsPressed(GLFW_KEY_D))
-            camera.moveSideways(1.0f, dt);
-        if(engine.keyIsPressed(GLFW_KEY_A))
-            camera.moveSideways(-1.0f, dt);
-
-       
+             
         glClearColor(0.0f,0.0f,0.3f,1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        
+        modelNanosuit.Draw(viewProj, modelShader);
+       // quad.draw(viewProj, dt);
 
-        quad.draw(viewProj, dt);
-
+     //   modelNanosuit.draw(viewProj);
+      
         engine.swapBuffers();
     }
 

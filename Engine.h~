@@ -21,9 +21,10 @@ public:
     ~Engine();
     bool init();
     bool windowIsOpen();
-    bool checkKeyForInput(int key);
+    bool keyIsPressed(int key);
     
     void pollEvents();
+    void handleMovement(float dt);
     void swapBuffers();
 
     float getDt();

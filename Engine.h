@@ -24,6 +24,7 @@ public:
     bool keyIsPressed(int key);
     
     void pollEvents();
+    void handleCameraMovement(float dt);
     void swapBuffers();
 
     float getDt();
