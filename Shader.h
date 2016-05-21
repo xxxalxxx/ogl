@@ -12,7 +12,7 @@ public:
     Shader();
     bool init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPath);
     void use();
-    GLuint getProgram();
+    GLuint getProgram() const;
     
 private:
     char* getFileString(const GLchar* path);
@@ -26,7 +26,7 @@ inline void Shader::use()
     glUseProgram(mProgram);
 }
 
-inline GLuint Shader::getProgram()
+inline GLuint Shader::getProgram() const
 {
     return mProgram;
 }

@@ -100,7 +100,7 @@ public:
         std::vector< std::vector<BoneWeight> > boneWeights;
         boneWeights.resize(mesh->mNumVertices); // num weights = num vertices
         
-        std::vector<Bone> boneTransforms; 
+        std::vector<BoneTransform> boneTransforms; 
 
         if(mesh->HasBones()) 
         {  

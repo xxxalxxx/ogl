@@ -27,7 +27,6 @@ struct Vertex {
 struct Texture {
     GLuint id;
     aiTextureType type;
-    aiString path;
     GLuint samplerHandle;
 };
 
@@ -38,25 +37,22 @@ public:
 
     struct Uniforms {GLuint program, MVP;} mUniforms;
 
+    Mesh(){}
 
-
-    /*  Functions  */
-    // Constructor
-    Mesh(std::vector<Vertex>& vertices, std::vector<GLuint>& indices, std::vector<Texture>& textures, Shader shader)
+    Mesh(
+        std::vector<Texture>& textures, 
+        const Shader& shader
+        ) : mNumIndices(0), mMaterialIndex(0), mBaseVertex(0), mBaseIndex(0)
     {
-        // Now that we have all the required data, set the vertex buffers and its attribute pointers.
-        //this->setupMesh()
         LOG("MESH INIT");
-        initBuffers(vertices, indices);
         initUniforms(shader, textures);
     }
 
-    // Render the mesh
-    void Draw(glm::mat4& viewProj, Shader shader) 
-    {
-        glm::mat4 MVP = viewProj;
-        glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
 
+
+    // Render the mesh
+    void Draw(glm::mat4& viewProj, const Shader& shader) 
+    {
         for(GLuint i = 0; i < mTextures.size(); i++)
         {
             glActiveTexture(GL_TEXTURE0 + i); // Active proper texture unit before binding
@@ -64,13 +60,11 @@ public:
             glUniform1i(mTextures[i].samplerHandle, i);
             glBindTexture(GL_TEXTURE_2D, mTextures[i].id);
         }
-        
-        // Draw mesh
-        glBindVertexArray(mVAO);
-        glDrawElements(GL_TRIANGLES, mNumIndices, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+      
+        glDrawElementsBaseVertex(GL_TRIANGLES, mNumIndices, GL_UNSIGNED_INT, 
+        (void*)(sizeof(unsigned int) * mBaseIndex), mBaseVertex);
 
-        // Always good practice to set everything back to defaults once configured.
+
         for (GLuint i = 0; i < mTextures.size(); i++)
         {
             glActiveTexture(GL_TEXTURE0 + i);
@@ -78,7 +72,7 @@ public:
         }
     }
 
-    void initUniforms(Shader shader, std::vector<Texture>& textures)
+    void initUniforms(const Shader& shader, std::vector<Texture>& textures)
     {
         mUniforms.program = shader.getProgram();
         mUniforms.MVP = glGetUniformLocation(mUniforms.program, "u_MVP");
@@ -97,9 +91,8 @@ public:
                     indexCurr = ++indexDiffuse;
                     break;
                 case aiTextureType_NORMALS:
-                   name = "texture_normal";
+                    name = "texture_normal";
                     indexCurr = ++indexNormal;
-
                     break;
                 case aiTextureType_SPECULAR:
                     name = "texture_specular";
@@ -126,59 +119,18 @@ public:
 
     }
 
-
-    void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
-    {
-        mNumIndices = indices.size();
-        // Create buffers/arrays
-        glGenVertexArrays(1, &mVAO);
-        glGenBuffers(1, &mVBO);
-        glGenBuffers(1, &mEBO);
-
-        glBindVertexArray(mVAO);
-        // Load data into vertex buffers
-        glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-        // A great thing about structs is that their memory layout is sequential for all its items.
-        // The effect is that we can simply pass a pointer to the struct and it translates perfectly to a glm::vec3/2 array which
-        // again translates to 3/2 floats which translates to a byte array.
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mNumIndices * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
-
-        // Set the vertex attribute pointers
-        // Vertex Positions
-        glEnableVertexAttribArray(0);	
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
-        // Vertex Normals
-        glEnableVertexAttribArray(1);	
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Normal));
-        // Vertex Texture Coords
-        glEnableVertexAttribArray(2);	
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
-        // Vertex Tangent
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
-        // Vertex Bitangent
-       // glEnableVertexAttribArray(4);
-       // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
-
-        glBindVertexArray(0);
-
-    }
     
-    void unload()
-    {
-        glDeleteVertexArrays(1, &mVAO);
-        glDeleteBuffers(1, &mVBO);
-        glDeleteBuffers(1, &mEBO);
-    }
+
+    unsigned int mNumIndices, 
+                 mMaterialIndex, 
+                 mBaseVertex, 
+                 mBaseIndex;
+
 
 private:
-    int mNumIndices;
-    GLuint mVAO, mVBO, mEBO;
 
-  };
+
+};
 
 
 

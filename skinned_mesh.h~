@@ -3,6 +3,7 @@
 
 struct Bone
 {
+    
     aiMatrix4x4 boneSpaceTransform, animatedTransform;
 };
 
@@ -10,9 +11,6 @@ struct BoneWeight
 {
     BoneWeight(size_t boneIndex, float weight) 
         : boneIndex(boneIndex), weight(weight)
-    {
-    }
-    
     size_t boneIndex;
     float weight;
 };

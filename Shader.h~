@@ -14,11 +14,11 @@ public:
     void use();
     GLuint getProgram();
     
-    GLuint mProgram;
-
 private:
     char* getFileString(const GLchar* path);
     void logCompileError(GLuint handle);
+
+    GLuint mProgram;
 };
 
 inline void Shader::use()
