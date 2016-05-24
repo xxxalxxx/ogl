@@ -9,6 +9,8 @@
 
 #include <GL/glew.h> 
 
+#include "SOIL/SOIL.h"
+
 #define LOG(x) std::cout<< x << std::endl
 
 class TextureManager
@@ -16,20 +18,27 @@ class TextureManager
 public:
     static TextureManager& getInstance();  
 
-    GLint load(const char* path, const char* relativeTexFilePath, bool gamma = false);
-    GLint load(const std::string& path, const std::string& relativeTexFilePath, bool gamma = false);
-    GLint load(const std::string& path, bool gamma = false);
-    GLint load(const char* path, bool gamma = false);
+    GLuint load(const char* path, const char* relativeTexFilePath, bool gamma = false);
+    GLuint load(const std::string& path, const std::string& relativeTexFilePath, bool gamma = false);
+    GLuint load(const std::string& path, bool gamma = false);
+    GLuint load(const char* path, bool gamma = false);
+
+    void unload();
 
 private:
     void checkGlTextureFormatFromSOIL(bool* isValidChannel, GLenum* out, unsigned int channel);
     std::string getPathString(const std::string& path, const std::string& relativeTexFilePath);
 
     TextureManager(){}
+    ~TextureManager(){unload();}
     TextureManager(const TextureManager& other);  
     TextureManager& operator=(TextureManager& other);
 
-    std::unordered_map<const char*, GLint> mCurrTextureHandles;
+    typedef std::pair<std::string, GLuint> tex_pair_t;
+    typedef std::unordered_map<std::string, GLuint> tex_container_t;
+    typedef tex_container_t::iterator tex_iter_t;
+
+    tex_container_t mCurrTextureHandles;
 
 };
 
@@ -60,14 +69,14 @@ inline std::string TextureManager::getPathString(const std::string& path, const 
     std::string ret(path);
     if(ret[ret.size() - 1] != '/') ret += '/';
     ret.append(relativeTexFilePath);
-    LOG(ret);
+
 
     return ret;
 }
 
 
 
-inline GLint TextureManager::load(const char* path, const char* relativeTexFilePath, bool gamma/* = false */)
+inline GLuint TextureManager::load(const char* path, const char* relativeTexFilePath, bool gamma/* = false */)
 {
     std::string pathStr(path);
     std::string relativeTexFilePathStr(relativeTexFilePath);
@@ -75,23 +84,27 @@ inline GLint TextureManager::load(const char* path, const char* relativeTexFileP
     return load(pathStr, relativeTexFilePathStr, gamma);
 }
 
-inline GLint TextureManager::load(const std::string& path, const std::string& relativeTexFilePath, bool gamma/* = false */)
+inline GLuint TextureManager::load(const std::string& path, const std::string& relativeTexFilePath, bool gamma/* = false */)
 {
     std::string filepath( getPathString(path, relativeTexFilePath) );
     
     return load(filepath, gamma);
 }
 
-inline GLint TextureManager::load(const std::string& path, bool gamma /* = false */)
+inline GLuint TextureManager::load(const char* path, bool gamma /* = false */)
 {
-    return load(path.c_str(), gamma);
+    std::string pathStr(path);
+    return load(pathStr, gamma);
 }
 
 
 
-inline GLint TextureManager::load(const char* path, bool gamma/*  = false*/)
-{ 
-    std::unordered_map<const char*, GLint>::iterator it = mCurrTextureHandles.find(path);
+inline GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
+{
+    LOG("BEFORE PATH");
+    LOG(path);
+
+    tex_iter_t it = mCurrTextureHandles.find(path);
 
     if(it != mCurrTextureHandles.end())
     {
@@ -99,29 +112,32 @@ inline GLint TextureManager::load(const char* path, bool gamma/*  = false*/)
         return it->second;
     }
 
-    GLuint textureID;
-    glGenTextures(1, &textureID);
+    GLuint textureId;
+    glGenTextures(1, &textureId);
     int w, h;
     int channels;
 
-    LOG("BEFORE LOAD");
-    unsigned char* image = SOIL_load_image(path, &w, &h, &channels, SOIL_LOAD_AUTO);
+ //   LOG("BEFORE LOAD");
+    unsigned char* image = SOIL_load_image(path.c_str(), &w, &h, &channels, SOIL_LOAD_AUTO);
     
-    LOG("AFTER LOAD");
+//    LOG("AFTER LOAD");
     GLenum format;
     bool validChannel;
     checkGlTextureFormatFromSOIL(&validChannel, &format, channels);
     LOG(channels);
-    if(!validChannel) format = gamma ? GL_SRGB : GL_RGB; 
-
+    if(!validChannel)
+    {
+        LOG("NOT VALID CHANNED");
+        format = gamma ? GL_SRGB : GL_RGB; 
+    }
     // Assign texture to ID
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    LOG("AFTER BIND");
+    glBindTexture(GL_TEXTURE_2D, textureId);
+//    LOG("AFTER BIND");
     glTexImage2D(GL_TEXTURE_2D, 0, format,  w, h, 0, format, GL_UNSIGNED_BYTE, image);
-    LOG("AFTER TEX IMAGE");
+//    LOG("AFTER TEX IMAGE");
     glGenerateMipmap(GL_TEXTURE_2D);	
 
-    LOG("AFTER MIP");
+  //  LOG("AFTER MIP");
     // Parameters
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
@@ -129,14 +145,22 @@ inline GLint TextureManager::load(const char* path, bool gamma/*  = false*/)
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
     SOIL_free_image_data(image);
-    LOG("AFTER TEX");
+ //   LOG("AFTER TEX");
 
-    mCurrTextureHandles[path] = textureID;
-    return textureID;
+    mCurrTextureHandles.insert(tex_pair_t(path,textureId ));
+    return textureId;
 }
 
 
-
+void TextureManager::unload()
+{
+    tex_iter_t it;
+    for(it = mCurrTextureHandles.begin(); it != mCurrTextureHandles.end(); ++it )
+    {
+        glDeleteTextures(1, &it->second);
+    }
+    mCurrTextureHandles.clear();
+}
 
 
 

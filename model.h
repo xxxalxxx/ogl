@@ -26,9 +26,8 @@
 class Model 
 {
 public:
-  
-   // std::vector<Texture> textures_loaded;
-    std::vector<Mesh> meshes;
+
+    std::vector<Mesh> mMeshes;
 
     std::string mPath;
     std::string mTexturesDir;
@@ -37,89 +36,110 @@ public:
     int mAiProcessArgs;
    
     bool gammaCorrection;
-    
-    size_t mNumVertices, 
-           mNumIndices;
 
-
-    std::vector<Vertex> mVertices;
-    std::vector<GLuint> mIndices;
     std::vector<Texture> mTextures;
 
-   GLuint mVAO, mVBO, mEBO;
-
     Model(
-        const char* path, 
-        const char* texturesDir, 
+        const std::string& path, 
         Shader& shader, 
+        const char* texturesDir = NULL,     
         int aiProcessArgs = 0, 
         bool gamma = false
-        ) : mPath(path), mTexturesDir(texturesDir), mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma), 
-            mNumVertices(0), mNumIndices(0)
+        ) : mPath(path), mTexturesDir(texturesDir ? texturesDir : mPath), 
+        mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma)
     {
         LOG("MODEL_CREATE");  
     }
 
-    void init()
+    ~Model()
     {
-         this->loadModel(mPath, mAiProcessArgs, mShader);
-         initBuffers(mVertices, mIndices);
+       // unload();
+    }
+
+    bool init()
+    {   
+
+        LOG("MODEL INIT");
+        
+        Assimp::Importer importer;
+        const aiScene* scene = importer.ReadFile(mPath, 
+                mAiProcessArgs ? mAiProcessArgs :
+                  aiProcess_Triangulate 
+                | aiProcess_FlipUVs 
+                | aiProcess_CalcTangentSpace
+                );
+
+        if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
+        {
+            std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+            return false;
+        }
+
+        if(!scene->HasMeshes())
+        {
+            LOG("ERROR: NO MESHES FOUND");
+            return false;
+        }
+        
+        size_t numVertices, numIndices;
+        countMeshData(scene, numVertices, numIndices);
+
+        std::vector<Vertex> vertices;
+        std::vector<GLuint> indices;
+        
+        vertices.reserve(numVertices);
+        indices.reserve(numIndices);
+
+        processNode(scene, scene->mRootNode, mShader, vertices, indices); 
+        initBuffers(vertices, indices);
+
+        return true;
     }
 
     void Draw(glm::mat4& viewProj, const Shader& shader)
     {
-       glm::mat4 MVP = viewProj;
+        glm::mat4 MVP = viewProj;
         glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
         glBindVertexArray(mVAO);
 
-        for(GLuint i = 0; i < this->meshes.size(); i++)
-            this->meshes[i].Draw(viewProj, shader);
+        for(GLuint i = 0; i < mMeshes.size(); i++)
+            mMeshes[i].Draw();
 
         glBindVertexArray(0);
     }
 
 
-    Mesh processMesh(const aiScene* scene, aiMesh* mesh,  const Shader& shader)
+    Mesh processMesh(const aiScene* scene, aiMesh* mesh, 
+             std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
     {
         LOG("MODEL PROCESS MESH");
 
         std::vector<Texture> textures;
 
-        mVertices.reserve(mesh->mNumVertices);
+        size_t baseVertex = vertices.size();
+        size_t baseIndex  = indices.size();
+
 
         for(GLuint i = 0; i < mesh->mNumVertices; i++)
         {
 
             Vertex vertex;
-            glm::vec3 vector; 
+
             if(mesh->HasPositions()) 
             {
-                vector.x = mesh->mVertices[i].x;
-                vector.y = mesh->mVertices[i].y;
-                vector.z = mesh->mVertices[i].z;
-                vertex.Position = vector;
+                setVector(mesh->mVertices[i], vertex.Position);
             }
 
             if(mesh->HasNormals()) 
             {
-                vector.x = mesh->mNormals[i].x;
-                vector.y = mesh->mNormals[i].y;
-                vector.z = mesh->mNormals[i].z;
-                vertex.Normal = vector;
+                setVector(mesh->mNormals[i], vertex.Normal);
             }
 
             if(mesh->HasTangentsAndBitangents()) 
             {
-                vector.x = mesh->mTangents[i].x;
-                vector.y = mesh->mTangents[i].y;
-                vector.z = mesh->mTangents[i].z;
-                vertex.Tangent = vector;
-
-                vector.x = mesh->mBitangents[i].x;
-                vector.y = mesh->mBitangents[i].y;
-                vector.z = mesh->mBitangents[i].z;
-                vertex.Bitangent = vector;
-            }  
+                setVector(mesh->mTangents[i], vertex.Tangent);
+                setVector(mesh->mBitangents[i], vertex.Bitangent);
+            }
 
             if(mesh->mTextureCoords[0]) // Does the mesh contain texture coordinates?
             {
@@ -130,31 +150,23 @@ public:
                 vec.y = mesh->mTextureCoords[0][i].y;
                 vertex.TexCoords = vec;
             }
-            else 
-            {
-                vertex.TexCoords = glm::vec2(0.0f, 0.0f);
-            }
-            mVertices.push_back(vertex);
+            
+            vertices.push_back(vertex);
            
         }
 
         //process indices
-        
-        mIndices.reserve(mesh->mNumFaces * 3);
-        size_t numIndices = mIndices.size(); 
-        
         for(GLuint i = 0; i < mesh->mNumFaces; i++)
         {
             aiFace& face = mesh->mFaces[i];
 
             for(GLuint j = 0; j < face.mNumIndices; j++)
             {
-                mIndices.push_back(face.mIndices[j]);
+                indices.push_back(face.mIndices[j]);
             }
            
         }
-        numIndices = mIndices.size() - numIndices;
-        // Process materials
+  
         if(mesh->mMaterialIndex >= 0)
         {
             aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -171,60 +183,68 @@ public:
                 loadMaterialTextures(textures, material, texTypes[i]);
             }
         }
-           
-        Mesh ret(textures, shader);
-        ret.mNumIndices = numIndices;
-        ret.mBaseVertex = mNumVertices;
-        ret.mBaseIndex = mNumIndices;
-
-        mNumVertices += mesh->mNumVertices;
-        mNumIndices  += numIndices;
         
+        size_t numIndices = indices.size() - baseIndex; 
+
+        Mesh ret(
+                numIndices,
+                mesh->mMaterialIndex,
+                baseVertex,
+                baseIndex,
+                textures);
+
         return ret;
     }
 
-    
-private:
-    
-    void loadModel(const std::string& path, int aiProcessArgs, const Shader& shader)
+
+    void countMeshData(const aiScene* scene, size_t& outNumVertices, size_t& outNumIndices)
     {
-        LOG("MODEL LOAD");
-        
-        Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(path, 
-                aiProcessArgs ? aiProcessArgs :
-                  aiProcess_Triangulate 
-                | aiProcess_FlipUVs 
-                | aiProcess_CalcTangentSpace
-                );
-        // Check for errors
-        if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) // if is Not Zero
+        outNumVertices = 0;
+        outNumIndices  = 0;
+
+        if(!scene)
         {
-            std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+            LOG("SCENE IS ZERO");
             return;
         }
 
-
-        if(scene->HasMeshes())
+        for(size_t i=0;i<scene->mNumMeshes;++i)
         {
-            processNode(scene, scene->mRootNode, shader); 
+            aiMesh* m = scene->mMeshes[i];
+            outNumVertices += m->mNumVertices;   
+            outNumIndices += m->mNumFaces;
         }
+        outNumIndices *= 3;
+        LOG("OUT VERT:" << outNumVertices << " OUT IND:" <<outNumIndices);
+    }
 
+    GLuint mVAO, mVBO, mEBO;
+
+    
+    void unload()
+    {
+        glDeleteVertexArrays(1, &mVAO);
+        glDeleteBuffers(1, &mVBO);
+        glDeleteBuffers(1, &mEBO);
     }
 
 
-    void processNode(const aiScene* scene, aiNode* node, const Shader& shader)
+
+private:
+  
+    void processNode(const aiScene* scene, aiNode* node, const Shader& shader,
+            std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
     {
         for(size_t i=0;i<node->mNumMeshes;++i)
         {
             aiMesh* mesh = scene->mMeshes[node->mMeshes[i]]; 
-            this->meshes.push_back(this->processMesh(scene, mesh, shader));
+            mMeshes.push_back(processMesh(scene, mesh, vertices, indices));
         }
     
 
         for(size_t i=0;i<node->mNumChildren;++i)
         {
-            processNode(scene, node->mChildren[i], shader);
+            processNode(scene, node->mChildren[i], shader, vertices, indices);
         }
     }
 
@@ -242,8 +262,7 @@ private:
             texture.id = textureManager.load(mTexturesDir.c_str(), relativeTexFilePath.C_Str() ); 
             texture.type = type;
             textures.push_back(texture);
-        }
-       
+        }  
     }
 
 
@@ -251,22 +270,19 @@ private:
 
     void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
     {
-        mNumIndices = indices.size();
-
         glGenVertexArrays(1, &mVAO);
         glGenBuffers(1, &mVBO);
         glGenBuffers(1, &mEBO);
 
         glBindVertexArray(mVAO);
-        // Load data into vertex buffers
-        glBindBuffer(GL_ARRAY_BUFFER, mVBO);
 
+        glBindBuffer(GL_ARRAY_BUFFER, mVBO);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, mNumIndices * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
-
-
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
+        
+        //Vertex Positions
         glEnableVertexAttribArray(0);	
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
         // Vertex Normals
@@ -285,16 +301,16 @@ private:
         glBindVertexArray(0);
 
     }
+    
 
 
-    void unload()
+    void setVector(const aiVector3D& src, glm::vec3& dest)
     {
-
-        //TODO: clear textures too
-        glDeleteVertexArrays(1, &mVAO);
-        glDeleteBuffers(1, &mVBO);
-        glDeleteBuffers(1, &mEBO);
+        dest.x = src.x;
+        dest.y = src.y; 
+        dest.z = src.z;
     }
+
 
 
 

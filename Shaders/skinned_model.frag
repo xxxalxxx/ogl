@@ -10,3 +10,4 @@ void main()
 {    
     color = texture(texture_diffuse[0], TexCoords);
 }
+

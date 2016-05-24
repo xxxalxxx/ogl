@@ -4,7 +4,7 @@
 #include "Shader.h"
 //#include "Quad.h"
 #include "model.h" 
-//#include "skinned_model.h"
+#include "skinned_model.h"
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -15,7 +15,7 @@ void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode
     {
         std::cout<< "E PRESSED" <<std::endl;
     }
-    else if(key == GLFW_KEY_E && action == GLFW_REPEAT)
+    else if(key == GLFW_KEY_E && action ==GLFW_REPEAT)
     {
         std::cout<< "E REPEAT" <<std::endl;
     }
@@ -102,19 +102,28 @@ int main()
     engine.setFramebufferSizeCallback(framebufferSizeCallback);
     
     glEnable(GL_DEPTH_TEST);
-
+/*
     Shader modelShader;
     if(!modelShader.init("Shaders/shader.vs", "Shaders/shader.frag")) return -1;
     modelShader.use();
     Model modelNanosuit(
            "res/mesh/guard/boblampclean.md5mesh", // "res/mesh/police/Police.obj",
-           "res/mesh/guard/",// "res/mesh/police/Texture", 
-            modelShader
+            modelShader,
+            "res/mesh/guard/"// "res/mesh/police/Texture",
             );
 
-    modelNanosuit.init();
-     
-    
+    if(!modelNanosuit.init()) return -1;
+*/
+    Shader skinnedModelShader;
+    if(!skinnedModelShader.init("Shaders/skinned_model.vert", "Shaders/skinned_model.frag")) return -1;
+    skinnedModelShader.use();
+    SkinnedModel sk(
+           "res/mesh/guard/boblampclean.md5mesh",
+           "res/mesh/guard/",
+           skinnedModelShader
+           );
+
+    sk.init();
     /*
     Shader quadShader;
     if(!quadShader.init("Shaders/quad.vert","Shaders/quad.frag")) return -1;
@@ -126,26 +135,32 @@ int main()
    // modelNanosuit.init(modelShader.getProgram(), "res/mesh/nanosuit/nanosuit.obj");
    // glm::mat4 modelNanosuitModelMatrix = glm::mat4(1.0f);
    // modelNanosuit.update(modelNanosuitModelMatrix, 0.0f);
-
+    Timer& timer = engine.getTimer();
     Camera& camera = engine.getCamera();
     glm::mat4& proj = camera.getProj();
     glm::mat4& view = camera.getView();
     
+    sk.update(timer.getCurrentTime());
+
     while(engine.windowIsOpen())
     { 
 
       
-        float dt = engine.getDt();
+        float dt = timer.tick();
     
-        glm::mat4 viewProj = proj * view; 
+        glm::mat4 viewProj = proj * view;
+        viewProj *= 1.0f;
+        
         engine.pollEvents();
         engine.handleCameraMovement(dt);
 
              
         glClearColor(0.0f,0.0f,0.3f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+      //  sk.update(timer.getCurrentTime());
         
-        modelNanosuit.Draw(viewProj, modelShader);
+      //        sk.Draw(viewProj, skinnedModelShader);
+     //   modelNanosuit.Draw(viewProj, modelShader);
        // quad.draw(viewProj, dt);
 
      //   modelNanosuit.draw(viewProj);

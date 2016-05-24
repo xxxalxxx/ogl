@@ -22,6 +22,7 @@
 struct Vertex {
     glm::vec3 Position, Normal, Tangent, Bitangent;
     glm::vec2 TexCoords;
+
 };
 
 struct Texture {
@@ -39,19 +40,26 @@ public:
 
     Mesh(){}
 
-    Mesh(
-        std::vector<Texture>& textures, 
-        const Shader& shader
-        ) : mNumIndices(0), mMaterialIndex(0), mBaseVertex(0), mBaseIndex(0)
+    Mesh(std::vector<Texture>& textures) : mNumIndices(0), mMaterialIndex(0), mBaseVertex(0), mBaseIndex(0)
     {
         LOG("MESH INIT");
-        initUniforms(shader, textures);
+        initTextures(textures);
+    }
+
+    Mesh(
+        unsigned int numIndices,
+        unsigned int materialIndex,
+        unsigned int baseVertex,
+        unsigned int baseIndex,
+        std::vector<Texture>& textures
+        ) :  mNumIndices(numIndices), mMaterialIndex(materialIndex), mBaseVertex(baseVertex), mBaseIndex(baseIndex)
+    {
+        initTextures(textures);
     }
 
 
-
     // Render the mesh
-    void Draw(glm::mat4& viewProj, const Shader& shader) 
+    void Draw() 
     {
         for(GLuint i = 0; i < mTextures.size(); i++)
         {
@@ -72,11 +80,8 @@ public:
         }
     }
 
-    void initUniforms(const Shader& shader, std::vector<Texture>& textures)
-    {
-        mUniforms.program = shader.getProgram();
-        mUniforms.MVP = glGetUniformLocation(mUniforms.program, "u_MVP");
-        
+    void initTextures(std::vector<Texture>& textures)
+    {    
         int indexDiffuse = 0, indexNormal = 0, indexSpec = 0, indexHeight = 0;
         mTextures = textures;
 
@@ -88,19 +93,19 @@ public:
             {
                 case aiTextureType_DIFFUSE:
                     name = "texture_diffuse";
-                    indexCurr = ++indexDiffuse;
+                    indexCurr = indexDiffuse++;
                     break;
                 case aiTextureType_NORMALS:
                     name = "texture_normal";
-                    indexCurr = ++indexNormal;
+                    indexCurr = indexNormal++;
                     break;
                 case aiTextureType_SPECULAR:
                     name = "texture_specular";
-                    indexCurr = ++indexSpec;
+                    indexCurr = indexSpec++;
                     break;
                 case aiTextureType_HEIGHT:
                     name = "texture_height";
-                    indexCurr = ++indexHeight;
+                    indexCurr = indexHeight++;
                     break;
                 default:break;
             };
@@ -108,8 +113,7 @@ public:
 
             if(indexCurr != -1) 
             {
-                name += std::to_string(indexCurr);
-             
+                name += '[' + std::to_string(indexCurr) + ']';
                 mTextures[i].samplerHandle = glGetUniformLocation(mUniforms.program, name.c_str());
             }
 
@@ -125,11 +129,6 @@ public:
                  mMaterialIndex, 
                  mBaseVertex, 
                  mBaseIndex;
-
-
-private:
-
-
 };
 
 

@@ -1,38 +1,215 @@
 #include "mesh.h"
+#include <vector>
+#include <math.h>
 
+#define BONES_PER_VERTEX 4
 
-struct Bone
+struct BoneTransform
 {
-    
-    aiMatrix4x4 boneSpaceTransform, animatedTransform;
+    aiMatrix4x4 mBoneSpaceTransform, mAnimatedTransform;
 };
 
 struct BoneWeight
 {
-    BoneWeight(size_t boneIndex, float weight) 
-        : boneIndex(boneIndex), weight(weight)
-    size_t boneIndex;
-    float weight;
+    BoneWeight(){ }
+    unsigned int mBoneIndices[BONES_PER_VERTEX];
+    float mWeights[BONES_PER_VERTEX]; 
+
 };
 
-
-class SkinnedMesh
+struct Bone
 {
-public:
-    SkinnedMesh(
-            std::vector<Vertex>& vertices, 
-            std::vector<GLuint>& indices, 
-            std::vector<Texture>& textures, 
-            const Shader& shader
-            ) : mMesh(vertices, indices, textures, shader)
-    {
-    
-    }
-
-    SkinnedMesh(const std::vector<BoneWeight>& boneWeights, const Mesh& mesh): mMesh(mesh)
-    {
-    }
-
-    Mesh mMesh;
-
+    glm::ivec4 mBoneIndices;
+    glm::vec4 mWeights;
 };
+
+
+
+
+/*
+struct BoneInfo
+{
+
+    struct BoneWeight
+    {        
+        unsigned int mBoneIndices[BONES_PER_VERTEX];
+        float mWeights[BONES_PER_VERTEX];
+        
+        BoneWeight(){}
+        
+        BoneWeight& operator=(BoneWeight& other)
+        {
+            LOG("CPY");
+            return *this;
+        }
+
+        void set(size_t index, unsigned int boneIndex, float weight)
+        {
+            LOG("I:" <<boneIndex << "W:" << weight << "AT:" << index);
+            mBoneIndices[index] = -1;// boneIndex;
+            mWeights[index] = -1;// weight;
+        }
+
+
+    };
+
+
+    BoneInfo(size_t numWeights)
+    {
+        mBoneWeights.resize(numWeights);
+        mWeightCounts.resize(numWeights);
+    }
+
+    bool addBoneWeight(size_t indexBoneWeight, size_t indexBoneWeightData, unsigned int boneIndex, float weight)
+    {
+        if(indexBoneWeight > mBoneWeights.size() || mWeightCounts[indexBoneWeight] > BONES_PER_VERTEX) return false;
+        ++mWeightCounts[indexBoneWeight];
+
+        mBoneWeights[indexBoneWeight].set(indexBoneWeightData, boneIndex, weight);
+        return true;
+    }
+    std::vector<BoneWeight> mBoneWeights;
+    std::vector<size_t> mWeightCounts;
+};
+
+*/
+
+
+struct AnimNode 
+{
+    const static double DEFAULT_TICKS_PER_SECOND;
+    const static double DEFAULT_TICKS_DURATION;
+
+    AnimNode(aiNode& assimpNode, AnimNode* parent = NULL): mAssimpNode(assimpNode), mParent(parent)
+    {
+    }
+
+    ~AnimNode()
+    {
+    }
+
+    bool hasRelatedBone() const
+    {
+        return mBoneTransformIndex != -1;    
+    }
+
+    bool isRoot() const
+    {
+        return mParent == NULL;
+    }
+
+    bool isAnimatedAtIndex(unsigned int animIndex) const
+    {
+        return animIndex < mAnimTypes.size() && mAnimTypes[animIndex] != NULL;
+    }
+
+    aiMatrix4x4 getAnimatedTransform(float progress, unsigned int animIndex)
+    {
+
+        if(!isAnimatedAtIndex(animIndex)) { return mAssimpNode.mTransformation;}
+
+        aiNodeAnim& channel     = *(mAnimTypes[animIndex]); 
+        aiMatrix4x4 translation = getTranslation(progress, animIndex, channel), 
+                    rotation    = getRotation(progress, animIndex, channel), 
+                    scaling     = getScaling(progress, animIndex, channel);
+
+        return translation * rotation * scaling;
+    }
+
+    aiNode& mAssimpNode;
+
+    AnimNode* mParent;
+    int mBoneTransformIndex;
+    std::vector<AnimNode*> mChildren;
+    std::vector<aiNodeAnim*> mAnimTypes;
+
+private:
+    aiMatrix4x4 getTranslation(float progress, unsigned int animIndex, aiNodeAnim& channel)
+    {   
+        aiMatrix4x4 translation;    
+        if(channel.mNumPositionKeys == 0) return translation;   
+        if(channel.mNumPositionKeys == 1)
+        {
+            aiMatrix4x4::Translation(channel.mPositionKeys[0].mValue, translation);
+            return translation;
+        }
+         
+        for(size_t i=0;i<channel.mNumPositionKeys-1;++i)
+        {
+            if(progress < channel.mPositionKeys[i+1].mTime)
+            {
+                aiVectorKey& pk0 = channel.mPositionKeys[i];
+                aiVectorKey& pk1 = channel.mPositionKeys[i+1];
+                // [0,1] interpolation scalar = (progress - t0)/(dt), dt = t1 - t0
+                float t = (progress - pk0.mTime)/(pk1.mTime - pk0.mTime);
+                // one of [progress, key time, ticks, duration] is wrong, return identity               
+                if(t<0.0f||t>1.0f) return translation;
+                
+                aiVector3D p = pk0.mValue + t * (pk1.mValue - pk0.mValue);
+                aiMatrix4x4::Translation(p, translation);
+
+                return translation;
+            }
+        }
+        return translation;
+    }
+    
+    aiMatrix4x4 getRotation(float progress, unsigned int animIndex, aiNodeAnim& channel)
+    {
+        if(channel.mNumRotationKeys == 0) return aiMatrix4x4();   
+        if(channel.mNumRotationKeys == 1) return aiMatrix4x4(channel.mRotationKeys[0].mValue.GetMatrix());
+
+        for(size_t i=0;i<channel.mNumRotationKeys-1;++i)
+        {
+            if(progress < channel.mRotationKeys[i+1].mTime)
+            {
+                aiQuatKey& qk0 = channel.mRotationKeys[i];
+                aiQuatKey& qk1 = channel.mRotationKeys[i+1];
+
+                float t = (progress - qk0.mTime)/(qk1.mTime - qk0.mTime);    
+
+                if(t<0.0f||t>1.0f) return aiMatrix4x4();                
+                
+                aiQuaternion q;
+                aiQuaternion::Interpolate(q, qk0.mValue, qk1.mValue, t);
+                q.Normalize();
+                
+                return aiMatrix4x4(q.GetMatrix());
+            }
+        }
+        return aiMatrix4x4();
+    }
+
+    aiMatrix4x4 getScaling(float progress, unsigned int animIndex, aiNodeAnim& channel)
+    {
+        aiMatrix4x4 scaling;
+        if(channel.mNumScalingKeys == 0) return scaling;
+        if(channel.mNumScalingKeys == 1)
+        {
+            aiMatrix4x4::Scaling(channel.mScalingKeys[0].mValue, scaling);
+            return scaling;
+        }
+
+        for(size_t i=0;i<channel.mNumScalingKeys-1;++i)
+        {
+            if(progress < channel.mScalingKeys[i+1].mTime)
+            {
+              //  LOG("s found");
+                aiVectorKey& sk0 = channel.mScalingKeys[i];
+                aiVectorKey& sk1 = channel.mScalingKeys[i+1];
+                
+                float t = (progress - sk0.mTime)/(sk1.mTime - sk0.mTime);
+
+                if(t<0.0f||t>1.0f) return scaling;
+
+                aiVector3D p = sk0.mValue + t * (sk1.mValue - sk0.mValue);
+                aiMatrix4x4::Scaling(p, scaling);
+                return scaling;
+            }   
+        }
+        return scaling;
+    }
+};
+
+const double AnimNode::DEFAULT_TICKS_PER_SECOND = 25.0;
+const double AnimNode::DEFAULT_TICKS_DURATION = 100.0;

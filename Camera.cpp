@@ -18,21 +18,17 @@ void Camera::updateOrientation(double mouseX, double mouseY)
     mPrevMouseX = mouseX;
     mPrevMouseY = mouseY;
 
-   
-   // glm::quat orientation = glm::angleAxis(mPitch, RIGHT);
-    glm::quat orientation = glm::angleAxis(mYaw, UP);
-  //  orientation *= glm::angleAxis(mYaw, UP);
-    /*
+
     glm::quat orientation = glm::angleAxis(mYaw, UP);
     orientation *= glm::angleAxis(mPitch, RIGHT);
 
-*/
+
    // glm::vec3 look(mView[0].z, mView[1].z, mView[2].z);
   //  glm::vec3 up(mView[0].y, mView[1].y, mView[2].y);
-    glm::vec3 right = glm::vec3(mView[0].x, mView[1].x, mView[2].x);
+ /*   glm::vec3 right = glm::vec3(mView[0].x, mView[1].x, mView[2].x);
     glm::quat o2 = glm::angleAxis(mPitch, right);
-    o2 *= orientation;
-    mView = glm::mat4_cast(o2);
+    o2 *= orientation;*/
+    mView = glm::mat4_cast(orientation);
     rebuildView();
 }
 

@@ -150,7 +150,8 @@ public:
                 vec.y = mesh->mTextureCoords[0][i].y;
                 vertex.TexCoords = vec;
             }
-            
+
+           
             vertices.push_back(vertex);
            
         }
@@ -229,29 +230,6 @@ public:
     }
 
 
-    void setVector(const aiVector3D& src, glm::vec3& dest)
-    {
-        dest.x = src.x;
-        dest.y = src.y; 
-        dest.z = src.z;
-    }
-
-    void loadMaterialTextures(std::vector<Texture>& textures, aiMaterial* mat, aiTextureType type)
-    {
-        TextureManager& textureManager = TextureManager::getInstance();
-
-        for(GLuint i = 0; i < mat->GetTextureCount(type); i++)
-        {
-            aiString relativeTexFilePath;
-            mat->GetTexture(type, i, &relativeTexFilePath);
-         
-            Texture texture;
-            texture.id = textureManager.load(mTexturesDir.c_str(), relativeTexFilePath.C_Str() ); 
-            texture.type = type;
-            textures.push_back(texture);
-        }  
-    }
-
 
 private:
   
@@ -272,11 +250,28 @@ private:
     }
 
 
+    void loadMaterialTextures(std::vector<Texture>& textures, aiMaterial* mat, aiTextureType type)
+    {
+        TextureManager& textureManager = TextureManager::getInstance();
+
+        for(GLuint i = 0; i < mat->GetTextureCount(type); i++)
+        {
+            aiString relativeTexFilePath;
+            mat->GetTexture(type, i, &relativeTexFilePath);
+         
+            Texture texture;
+            texture.id = textureManager.load(mTexturesDir.c_str(), relativeTexFilePath.C_Str() ); 
+            texture.type = type;
+            textures.push_back(texture);
+        }  
+    }
+
+
 
 
     void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
     {
-      /*  glGenVertexArrays(1, &mVAO);
+        glGenVertexArrays(1, &mVAO);
         glGenBuffers(1, &mVBO);
         glGenBuffers(1, &mEBO);
 
@@ -298,18 +293,24 @@ private:
         glEnableVertexAttribArray(2);	
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
         // Vertex Tangent
-      //  glEnableVertexAttribArray(3);
-       // glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
         // Vertex Bitangent
        // glEnableVertexAttribArray(4);
        // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
 
         glBindVertexArray(0);
-*/
+
     }
     
 
 
+    void setVector(const aiVector3D& src, glm::vec3& dest)
+    {
+        dest.x = src.x;
+        dest.y = src.y; 
+        dest.z = src.z;
+    }
 
 
 
