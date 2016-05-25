@@ -22,14 +22,14 @@
 
 #include "mesh.h"
 #include "TextureManager.h"
-
+#include "Utils.h"
 class Model 
 {
 public:
 
     std::vector<Mesh> mMeshes;
 
-    std::string mPath;
+    std::string mFileName;
     std::string mTexturesDir;
   
     Shader& mShader;
@@ -40,20 +40,20 @@ public:
     std::vector<Texture> mTextures;
 
     Model(
-        const std::string& path, 
+        const std::string& fileName, 
         Shader& shader, 
         const char* texturesDir = NULL,     
         int aiProcessArgs = 0, 
         bool gamma = false
-        ) : mPath(path), mTexturesDir(texturesDir ? texturesDir : mPath), 
+        ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : Utils::getPathFromFileName(fileName) ), 
         mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma)
     {
         LOG("MODEL_CREATE");  
     }
 
-    ~Model()
+    virtual ~Model()
     {
-       // unload();
+        unload();
     }
 
     bool init()
@@ -62,7 +62,7 @@ public:
         LOG("MODEL INIT");
         
         Assimp::Importer importer;
-        const aiScene* scene = importer.ReadFile(mPath, 
+        const aiScene* scene = importer.ReadFile(mFileName, 
                 mAiProcessArgs ? mAiProcessArgs :
                   aiProcess_Triangulate 
                 | aiProcess_FlipUVs 
@@ -96,14 +96,14 @@ public:
         return true;
     }
 
-    void Draw(glm::mat4& viewProj, const Shader& shader)
+    void draw(glm::mat4& viewProj, const Shader& shader)
     {
         glm::mat4 MVP = viewProj;
         glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
         glBindVertexArray(mVAO);
 
         for(GLuint i = 0; i < mMeshes.size(); i++)
-            mMeshes[i].Draw();
+            mMeshes[i].draw();
 
         glBindVertexArray(0);
     }
@@ -204,7 +204,7 @@ public:
 
         if(!scene)
         {
-            LOG("SCENE IS ZERO");
+            LOG("ERROR:: SCENE IS NULL");
             return;
         }
 
@@ -229,8 +229,6 @@ public:
     }
 
 
-
-private:
   
     void processNode(const aiScene* scene, aiNode* node, const Shader& shader,
             std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
@@ -265,9 +263,6 @@ private:
         }  
     }
 
-
-
-
     void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
     {
         glGenVertexArrays(1, &mVAO);
@@ -292,8 +287,8 @@ private:
         glEnableVertexAttribArray(2);	
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
         // Vertex Tangent
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
+      //  glEnableVertexAttribArray(3);
+      //  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
         // Vertex Bitangent
        // glEnableVertexAttribArray(4);
        // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
@@ -302,6 +297,7 @@ private:
 
     }
     
+private:
 
 
     void setVector(const aiVector3D& src, glm::vec3& dest)

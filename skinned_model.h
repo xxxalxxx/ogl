@@ -32,12 +32,12 @@ public:
     size_t mNumBones;
 
     SkinnedModel(
-            const char* path, 
-            const char* texturesDir,
+            const std::string& fileName, 
             Shader& shader,   
+            const char* texturesDir = NULL,
             int aiProcessArgs = 0, 
             bool gamma = false
-            ): Model(path, shader, texturesDir, aiProcessArgs, gamma), mScene(NULL), mNumBones(0)
+            ): Model(fileName, shader, texturesDir, aiProcessArgs, gamma), mScene(NULL), mNumBones(0)
     {   
     }
 
@@ -54,12 +54,9 @@ public:
 
     bool init()
     {
-        std::string& path = Model::mPath;
-        int aiProcessArgs = Model::mAiProcessArgs;
-
         mScene = importer.ReadFile(
-                path, 
-                aiProcessArgs ? aiProcessArgs :
+                mFileName,
+                mAiProcessArgs ? mAiProcessArgs :
                   aiProcess_Triangulate 
                 | aiProcess_FlipUVs 
                 | aiProcess_CalcTangentSpace
@@ -71,9 +68,7 @@ public:
             return false;
         }
 
-        mModelSpaceTransform = mScene->mRootNode->mTransformation;
-        mModelSpaceTransform.Inverse();
-
+ 
         if(!mScene->HasAnimations())
         {
             LOG("ERROR: NO ANIMATIONS FOUND, USE MESH INSTEAD");
@@ -85,6 +80,10 @@ public:
             LOG("ERROR: NO MESHES FOUND");
             return false;
         }
+
+        mModelSpaceTransform = mScene->mRootNode->mTransformation;
+        mModelSpaceTransform.Inverse();
+
         
         for(size_t i=0;i<mScene->mNumAnimations;++i)
         {
@@ -101,7 +100,6 @@ public:
         size_t numIndices, numVertices;
         countMeshData(mScene, numVertices, numIndices);
              
-        LOG("NV:" << numVertices);
         vertices.reserve(numVertices);
         indices.reserve(numIndices);
         bones.resize(numVertices);
@@ -122,7 +120,7 @@ public:
                 aiMesh* mesh = mScene->mMeshes[n->mMeshes[i]];
 
                 processMeshBones(mScene, n, mesh, vertices.size(), bones, animNodeChecklist);
-                mMeshes.push_back(processMesh(mScene, mesh, vertices, indices));
+                Model::mMeshes.push_back(Model::processMesh(mScene, mesh, vertices, indices));
             }
                 
             for(size_t i=0;i<n->mNumChildren;++i)
@@ -130,12 +128,11 @@ public:
                 s.push(n->mChildren[i]);
             }    
         }
-        //init buffers
-        LOG("BUF INIT");
-        initBuffers(vertices, indices, bones);
-        LOG("BEFORE ANIM"); 
         createAnimNode(mScene, mScene->mRootNode, NULL, animNodeChecklist);
-        LOG("AFTER ANIM");
+        //init buffers
+        initBuffers(vertices, indices, bones);
+        
+
         return true;
     }
     
@@ -151,10 +148,14 @@ public:
             AnimNode* animNode = new AnimNode(*node, NULL);
 
             if(parent)
+            {
                 parent->mChildren.push_back(animNode);
+            }
             else 
+            {
                 mAnimNodeRoot = animNode;
-
+            }
+            
             if(it->second != -1)
             {
                 animNode->mBoneTransformIndex = it->second;
@@ -167,12 +168,14 @@ public:
                 aiAnimation* anim = scene->mAnimations[i];
                 bool hasAnim = false;
                 if(anim->mTicksPerSecond <= 0.0)
-                    anim->mTicksPerSecond = 25.0f; 
-
-               // if(anim->mDuration <= 0.0)
-               // {
-                 //   anim->mDuration = DEFAULT_ANIM_DURATION;
-               // }
+                {
+                    anim->mTicksPerSecond = AnimNode::DEFAULT_TICKS_PER_SECOND; 
+                }
+               
+                if(anim->mDuration <= 0.0)
+                {
+                    anim->mDuration = AnimNode::DEFAULT_TICKS_DURATION;
+                }
 
                 for(size_t j=0;j<anim->mNumChannels;++j)
                 {
@@ -185,8 +188,11 @@ public:
                         break;
                     }
                 }
+           
                 if(!hasAnim)
+                {
                     animNode->mAnimTypes.push_back(NULL);
+                }
             } 
             
             for(size_t i=0;i<node->mNumChildren;++i)
@@ -240,16 +246,16 @@ public:
                     }
                 }
 
-                LOG("AFTER BONES");
+
                 for(size_t j=0;j<bone->mNumWeights;++j)
-                { LOG("IN W");
+                {
                     aiVertexWeight& vertexWeight = bone->mWeights[j];
                     Bone& boneVertexAttr = bones[baseVertex + vertexWeight.mVertexId];
-                    LOG("A W");
+                    
                     for(size_t k=0;k<BONES_PER_VERTEX;++k)
                     {
                         if(boneVertexAttr.mWeights[k] == 0.0f) 
-                        {       LOG("W FOUND");
+                        {
                             boneVertexAttr.mBoneIndices[k] = boneIndex;
                             boneVertexAttr.mWeights[k] = vertexWeight.mWeight;
                             break;
@@ -258,7 +264,7 @@ public:
                 }
             }
         }  
-    LOG("BC END");
+    
     }
 
     void processAnimNode(float progress, aiMatrix4x4& parentTransform, AnimNode* animNode, unsigned int animationIndex)
@@ -266,18 +272,20 @@ public:
        // LOG("ANIM PROCESS"); 
         aiMatrix4x4 animTransform = animNode->getAnimatedTransform(progress, animationIndex);
         aiMatrix4x4 currTransform = parentTransform * animTransform;
-
+        LOG("GOT ANIM");
         if(animNode->hasRelatedBone())
         {
+            LOG("HB:" << animNode->mBoneTransformIndex << "S:" << mNumBones);
        //     LOG("IN UPD BONE:" << animNode->mBoneTransformIndex);
             //update bone
             BoneTransform& transforms = mBoneTransforms[animNode->mBoneTransformIndex];
+            LOG("AHB");
             transforms.mAnimatedTransform = mModelSpaceTransform * currTransform * transforms.mBoneSpaceTransform;
-            
-            //change row-order
+            LOG("TRANSFORM");
+            //change row-order, since assimp is cur for dx
             transforms.mAnimatedTransform = transforms.mAnimatedTransform.Transpose();
         }
-  
+        LOG("A G A");
         for(size_t i=0;i<animNode->mChildren.size();++i)
         {            
             processAnimNode(progress, currTransform, animNode->mChildren[i] , animationIndex);
@@ -303,26 +311,24 @@ public:
             LOG("ERROR: WRONG ANIMATION INDEX");
             return;
         }
+        LOG("UDP");
         aiMatrix4x4 initialTransform;
         float progress = currTime * mScene->mAnimations[0]->mTicksPerSecond;
         progress = fmod( progress, mScene->mAnimations[0]->mDuration);
+        LOG("PROCESS");
         processAnimNode(progress, initialTransform, mAnimNodeRoot, animationIndex);
     }
     
-    void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices, const std::vector<Bone>& bones) 
+    void initBuffers(std::vector<Vertex>& vertices,  std::vector<GLuint>& indices,  std::vector<Bone>& bones) 
     {
-   /*     for(size_t i=0;i<bones.size();++i)
-        {
-            LOG( glm::to_string(bones[i].mBoneIndices) << " " << glm::to_string(bones[i].mWeights));
-        }
-*/
+
         glGenVertexArrays(1, &mVAO);
  
         glGenBuffers(1, &mVBO);
         glGenBuffers(1, &mEBO);
         glGenBuffers(1, &mBoneBuffer);
 
-        glBindVertexArray(mVAO); 
+        glBindVertexArray(mVAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, mVBO);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
@@ -336,16 +342,7 @@ public:
         // Vertex Texture Coords
         glEnableVertexAttribArray(2);	
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
-
-       // glEnableVertexAttribArray(3);
-      //  glVertexAttribIPointer(3, 4, GL_INT, sizeof(Vertex), (const GLvoid*)offsetof(Vertex, bi));
       
-      //  glEnableVertexAttribArray(3);
-      //  glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*) offsetof(Vertex, bi));
-
-      //  glEnableVertexAttribArray(4);
-      //  glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (const GLvoid*) offsetof(Vertex, w));
-     /* 
         glBindBuffer(GL_ARRAY_BUFFER, mBoneBuffer);
         glBufferData(GL_ARRAY_BUFFER, bones.size() * sizeof(bones[0]), &bones[0], GL_STATIC_DRAW);  
      
@@ -353,28 +350,17 @@ public:
         glVertexAttribIPointer(3, 4, GL_INT, sizeof(Bone), (GLvoid*)0);
      
         glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Bone), (const GLvoid*) (16));
-     */
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Bone), (const GLvoid*)offsetof(Bone, mWeights));
+    
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
     
         glBindVertexArray(0);
-
-        LOG("END");
      
     }
 
-    void glLog(const char* msg)
-    {
-        GLenum err;
-        while ((err = glGetError()) != GL_NO_ERROR) {
-        std::cout << msg << " OpenGL error: " << err <<std::endl;
-             
-        } 
 
-    }
-
-    void Draw(glm::mat4& viewProj, const Shader& shader)
+    void draw(glm::mat4& viewProj, const Shader& shader)
     {
         glBindVertexArray(mVAO);
         glm::mat4 MVP = viewProj;
@@ -391,7 +377,7 @@ public:
 
         for(size_t i=0; i<mMeshes.size();++i)
         {
-            mMeshes[i].Draw();
+            mMeshes[i].draw();
         }
 
         glBindVertexArray(0);

@@ -29,8 +29,14 @@ private:
     void checkGlTextureFormatFromSOIL(bool* isValidChannel, GLenum* out, unsigned int channel);
     std::string getPathString(const std::string& path, const std::string& relativeTexFilePath);
 
-    TextureManager(){}
-    ~TextureManager(){unload();}
+    TextureManager()
+    {
+    }
+
+    ~TextureManager()
+    {
+        unload();
+    }
     TextureManager(const TextureManager& other);  
     TextureManager& operator=(TextureManager& other);
 
@@ -127,7 +133,7 @@ inline GLuint TextureManager::load(const std::string& path, bool gamma/*  = fals
     LOG(channels);
     if(!validChannel)
     {
-        LOG("NOT VALID CHANNED");
+        LOG("NOT VALID CHANNEL");
         format = gamma ? GL_SRGB : GL_RGB; 
     }
     // Assign texture to ID

@@ -59,12 +59,11 @@ public:
 
 
     // Render the mesh
-    void Draw() 
+    void draw() 
     {
         for(GLuint i = 0; i < mTextures.size(); i++)
         {
-            glActiveTexture(GL_TEXTURE0 + i); // Active proper texture unit before binding
-            
+            glActiveTexture(GL_TEXTURE0 + i);            
             glUniform1i(mTextures[i].samplerHandle, i);
             glBindTexture(GL_TEXTURE_2D, mTextures[i].id);
         }

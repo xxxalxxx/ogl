@@ -1,7 +1,7 @@
 #include "mesh.h"
 #include <vector>
 #include <math.h>
-
+#include "glm/vec4.hpp"
 #define BONES_PER_VERTEX 4
 
 struct BoneTransform
@@ -80,7 +80,7 @@ struct AnimNode
     const static double DEFAULT_TICKS_PER_SECOND;
     const static double DEFAULT_TICKS_DURATION;
 
-    AnimNode(aiNode& assimpNode, AnimNode* parent = NULL): mAssimpNode(assimpNode), mParent(parent)
+    AnimNode(aiNode& assimpNode, AnimNode* parent = NULL): mAssimpNode(assimpNode), mParent(parent), mBoneTransformIndex(0)
     {
     }
 
@@ -106,8 +106,8 @@ struct AnimNode
     aiMatrix4x4 getAnimatedTransform(float progress, unsigned int animIndex)
     {
 
-        if(!isAnimatedAtIndex(animIndex)) { return mAssimpNode.mTransformation;}
-
+        if(!isAnimatedAtIndex(animIndex)) { LOG("NO ANIMS"); return mAssimpNode.mTransformation;}
+        LOG("ANIMS");
         aiNodeAnim& channel     = *(mAnimTypes[animIndex]); 
         aiMatrix4x4 translation = getTranslation(progress, animIndex, channel), 
                     rotation    = getRotation(progress, animIndex, channel), 

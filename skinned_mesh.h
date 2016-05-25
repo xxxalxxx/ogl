@@ -1,7 +1,7 @@
 #include "mesh.h"
 #include <vector>
 #include <math.h>
-
+#include "glm/vec4.hpp"
 #define BONES_PER_VERTEX 4
 
 struct BoneTransform
@@ -9,13 +9,6 @@ struct BoneTransform
     aiMatrix4x4 mBoneSpaceTransform, mAnimatedTransform;
 };
 
-struct BoneWeight
-{
-    BoneWeight(){ }
-    unsigned int mBoneIndices[BONES_PER_VERTEX];
-    float mWeights[BONES_PER_VERTEX]; 
-
-};
 
 struct Bone
 {
@@ -24,63 +17,12 @@ struct Bone
 };
 
 
-
-
-/*
-struct BoneInfo
-{
-
-    struct BoneWeight
-    {        
-        unsigned int mBoneIndices[BONES_PER_VERTEX];
-        float mWeights[BONES_PER_VERTEX];
-        
-        BoneWeight(){}
-        
-        BoneWeight& operator=(BoneWeight& other)
-        {
-            LOG("CPY");
-            return *this;
-        }
-
-        void set(size_t index, unsigned int boneIndex, float weight)
-        {
-            LOG("I:" <<boneIndex << "W:" << weight << "AT:" << index);
-            mBoneIndices[index] = -1;// boneIndex;
-            mWeights[index] = -1;// weight;
-        }
-
-
-    };
-
-
-    BoneInfo(size_t numWeights)
-    {
-        mBoneWeights.resize(numWeights);
-        mWeightCounts.resize(numWeights);
-    }
-
-    bool addBoneWeight(size_t indexBoneWeight, size_t indexBoneWeightData, unsigned int boneIndex, float weight)
-    {
-        if(indexBoneWeight > mBoneWeights.size() || mWeightCounts[indexBoneWeight] > BONES_PER_VERTEX) return false;
-        ++mWeightCounts[indexBoneWeight];
-
-        mBoneWeights[indexBoneWeight].set(indexBoneWeightData, boneIndex, weight);
-        return true;
-    }
-    std::vector<BoneWeight> mBoneWeights;
-    std::vector<size_t> mWeightCounts;
-};
-
-*/
-
-
 struct AnimNode 
 {
     const static double DEFAULT_TICKS_PER_SECOND;
     const static double DEFAULT_TICKS_DURATION;
 
-    AnimNode(aiNode& assimpNode, AnimNode* parent = NULL): mAssimpNode(assimpNode), mParent(parent)
+    AnimNode(aiNode& assimpNode, AnimNode* parent = NULL): mAssimpNode(assimpNode), mParent(parent), mBoneTransformIndex(0)
     {
     }
 
@@ -106,7 +48,7 @@ struct AnimNode
     aiMatrix4x4 getAnimatedTransform(float progress, unsigned int animIndex)
     {
 
-        if(!isAnimatedAtIndex(animIndex)) { return mAssimpNode.mTransformation;}
+        if(!isAnimatedAtIndex(animIndex)) return mAssimpNode.mTransformation;
 
         aiNodeAnim& channel     = *(mAnimTypes[animIndex]); 
         aiMatrix4x4 translation = getTranslation(progress, animIndex, channel), 
@@ -194,7 +136,6 @@ private:
         {
             if(progress < channel.mScalingKeys[i+1].mTime)
             {
-              //  LOG("s found");
                 aiVectorKey& sk0 = channel.mScalingKeys[i];
                 aiVectorKey& sk1 = channel.mScalingKeys[i+1];
                 

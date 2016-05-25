@@ -24,13 +24,20 @@ public:
     GLuint load(const char* path, bool gamma = false);
 
     void unload();
+    
+    std::string getPathString(const std::string& path, const std::string& relativeTexFilePath);
 
 private:
     void checkGlTextureFormatFromSOIL(bool* isValidChannel, GLenum* out, unsigned int channel);
-    std::string getPathString(const std::string& path, const std::string& relativeTexFilePath);
 
-    TextureManager(){}
-    ~TextureManager(){unload();}
+    TextureManager()
+    {
+    }
+
+    ~TextureManager()
+    {
+        unload();
+    }
     TextureManager(const TextureManager& other);  
     TextureManager& operator=(TextureManager& other);
 
@@ -99,11 +106,11 @@ inline GLuint TextureManager::load(const char* path, bool gamma /* = false */)
 
 
 
-inline GLuint TextureManager::load(const std::string& path, bool gamma/*  = false*/)
+inline GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
 {
     LOG("BEFORE PATH");
     LOG(path);
-   // std::string pStr(path);
+
     tex_iter_t it = mCurrTextureHandles.find(path);
 
     if(it != mCurrTextureHandles.end())
