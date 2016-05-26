@@ -58,7 +58,7 @@ public:
                 mFileName,
                 mAiProcessArgs ? mAiProcessArgs :
                   aiProcess_Triangulate 
-                | aiProcess_FlipUVs 
+               // | aiProcess_FlipUVs 
                 | aiProcess_CalcTangentSpace
                 );
         // Check for errors

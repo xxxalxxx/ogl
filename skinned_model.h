@@ -24,7 +24,6 @@ public:
     AnimNode* mAnimNodeRoot;
 
     sk_model_container_t mAnimationNameIndices;
-    sk_model_container_t mBoneNameIndices;
 
     std::vector<BoneTransform> mBoneTransforms;
     aiMatrix4x4 mModelSpaceTransform;
@@ -84,7 +83,7 @@ public:
         mModelSpaceTransform = mScene->mRootNode->mTransformation;
         mModelSpaceTransform.Inverse();
 
-        
+    
         for(size_t i=0;i<mScene->mNumAnimations;++i)
         {
              LOG(mScene->mAnimations[i]->mName.C_Str());
@@ -106,7 +105,8 @@ public:
         
 
         sk_nodes_container_t animNodeChecklist;
-                
+        sk_model_container_t boneNameIndices;
+   
         std::stack<aiNode*> s;
         s.push(mScene->mRootNode);
 
@@ -119,7 +119,7 @@ public:
             {
                 aiMesh* mesh = mScene->mMeshes[n->mMeshes[i]];
 
-                processMeshBones(mScene, n, mesh, vertices.size(), bones, animNodeChecklist);
+                processMeshBones(mScene, n, mesh, vertices.size(), bones, boneNameIndices, animNodeChecklist);
                 Model::mMeshes.push_back(Model::processMesh(mScene, mesh, vertices, indices));
             }
                 
@@ -202,23 +202,24 @@ public:
         }
     }
 
-    unsigned int getUpdatedBoneIndex(const char* boneName)
+    unsigned int getUpdatedBoneIndex(sk_model_container_t& boneNameIndices, const char* boneName)
     {
         std::string boneNameStr(boneName);
-        sk_model_iter_t it = mBoneNameIndices.find(boneNameStr);                
+        sk_model_iter_t it = boneNameIndices.find(boneNameStr);                
         // add bone transform at bone index if no name found
-        if(it == mBoneNameIndices.end())
+        if(it == boneNameIndices.end())
         {
             unsigned int boneIndex = mNumBones++;
             mBoneTransforms.push_back(BoneTransform());
-            mBoneNameIndices[boneNameStr] = boneIndex;
+            boneNameIndices[boneNameStr] = boneIndex;
             
             return boneIndex;
         }
         return it->second;
     }
 
-    void processMeshBones(const aiScene* scene, aiNode* node, aiMesh* mesh, size_t baseVertex, std::vector<Bone>& bones, sk_nodes_container_t& animNodeChecklist)
+    void processMeshBones(const aiScene* scene, aiNode* node, aiMesh* mesh, size_t baseVertex, std::vector<Bone>& bones,
+                          sk_model_container_t& boneNameIndices, sk_nodes_container_t& animNodeChecklist)
     {
         if(mesh->HasBones())
         {
@@ -228,7 +229,7 @@ public:
             {
                 aiBone* bone = mesh->mBones[i];
                 const char* boneName = bone->mName.C_Str(); 
-                unsigned int boneIndex = getUpdatedBoneIndex(boneName);
+                unsigned int boneIndex = getUpdatedBoneIndex(boneNameIndices, boneName);
                 mBoneTransforms[boneIndex].mBoneSpaceTransform = mesh->mBones[i]->mOffsetMatrix;
 
                 aiNode* key = scene->mRootNode->FindNode(bone->mName); 

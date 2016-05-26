@@ -19,7 +19,7 @@
 #define INITIAL_FOV_RADIANS ((float)M_PI_4)
 #define INITIAL_FORWARD_MOVEMENT_SCALAR 20.0f
 #define INITIAL_SIDEWAYS_MOVEMENT_SCALAR 20.0f
-#define INITIAL_FOV_SCALAR 20.0f
+#define INITIAL_SCROLL_SENSITIVITY_SCALAR 0.05f
 #define INITIAL_MOUSE_SENSITIVITY_SCALAR 0.003f
 
 class Camera
@@ -46,7 +46,7 @@ public:
 private:
     float mNear, mFar, mFOV, mAspect;
     float mPitch, mYaw;
-    float mForwardMovementScalar, mSidewaysMovementScalar, mMouseSensitivityScalar;
+    float mForwardMovementScalar, mSidewaysMovementScalar, mMouseSensitivityScalar, mScrollSensitivityScalar;
     double mPrevMouseX, mPrevMouseY;
     glm::vec3 mEye; 
     const static glm::vec3 UP, RIGHT;
@@ -58,11 +58,12 @@ private:
 
 inline Camera::Camera(float aspect): 
 mNear(INITIAL_NEAR_PLANE), mFar(INITIAL_FAR_PLANE), 
-mFOV(INITIAL_FOV_RADIANS), mAspect(aspect), 
+mFOV( 0.5f * (MAX_FOV_RADIANS + MIN_FOV_RADIANS) ), mAspect(aspect), 
 mPitch(0.0f), mYaw(0.0f),
 mForwardMovementScalar(INITIAL_FORWARD_MOVEMENT_SCALAR), 
 mSidewaysMovementScalar(INITIAL_SIDEWAYS_MOVEMENT_SCALAR), 
 mMouseSensitivityScalar(INITIAL_MOUSE_SENSITIVITY_SCALAR),
+mScrollSensitivityScalar(INITIAL_SCROLL_SENSITIVITY_SCALAR),
 mEye(0.0f, 0.0f, 4.0f) 
 {
     rebuildView();

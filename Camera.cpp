@@ -32,7 +32,7 @@ void Camera::updateOrientation(double mouseX, double mouseY)
 
 void Camera::updateFOV(double scrollDirection)
 {
-    setFOV(mFOV + scrollDirection * mMouseSensitivityScalar);     
+    setFOV(mFOV + scrollDirection * mScrollSensitivityScalar);     
 }
 
 void Camera::rebuildPerspective()

@@ -50,7 +50,8 @@ struct AnimNode
 
         if(!isAnimatedAtIndex(animIndex)) return mAssimpNode.mTransformation;
 
-        aiNodeAnim& channel     = *(mAnimTypes[animIndex]); 
+        aiNodeAnim& channel     = *mAnimTypes[animIndex];
+
         aiMatrix4x4 translation = getTranslation(progress, animIndex, channel), 
                     rotation    = getRotation(progress, animIndex, channel), 
                     scaling     = getScaling(progress, animIndex, channel);
@@ -61,7 +62,9 @@ struct AnimNode
     aiNode& mAssimpNode;
 
     AnimNode* mParent;
+
     int mBoneTransformIndex;
+
     std::vector<AnimNode*> mChildren;
     std::vector<aiNodeAnim*> mAnimTypes;
 

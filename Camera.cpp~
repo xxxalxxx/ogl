@@ -75,14 +75,6 @@ void Camera::setFOV(float FOV)
     std::cout << "FOV " << FOV << std::endl; 
     mFOV = FOV;
     Utils::clamp(mFOV, MIN_FOV_RADIANS, MAX_FOV_RADIANS);
-/*
-     if(FOV < MIN_FOV_RADIANS)
-        mFOV = MIN_FOV_RADIANS;
-    else if(FOV > MAX_FOV_RADIANS) 
-        mFOV = MAX_FOV_RADIANS;
-    else 
-        mFOV = FOV;
-*/
 }
 
 void Camera::setFar(float far)
