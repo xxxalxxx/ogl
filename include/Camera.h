@@ -12,7 +12,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtc/quaternion.hpp"
 
-#include "../Utils.h"
+#include "Utils.h"
 
 #define INITIAL_NEAR_PLANE 0.1f
 #define INITIAL_FAR_PLANE 1000.0f
