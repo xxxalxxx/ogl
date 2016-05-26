@@ -36,17 +36,19 @@ public:
     int mAiProcessArgs;
    
     bool gammaCorrection;
-
+    bool mReplaceTexturePath;
     std::vector<Texture> mTextures;
 
     Model(
         const std::string& fileName, 
         Shader& shader, 
-        const char* texturesDir = NULL,     
+        const char* texturesDir = NULL,          
+        bool replaceTexturePath = false,  
         int aiProcessArgs = 0, 
         bool gamma = false
+
         ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : Utils::getPathFromFileName(fileName) ), 
-        mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma)
+        mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma), mReplaceTexturePath(replaceTexturePath)
     {
         LOG("MODEL_CREATE");  
     }
@@ -65,7 +67,7 @@ public:
         const aiScene* scene = importer.ReadFile(mFileName, 
                 mAiProcessArgs ? mAiProcessArgs :
                   aiProcess_Triangulate 
-                | aiProcess_FlipUVs 
+             //   | aiProcess_FlipUVs 
                 | aiProcess_CalcTangentSpace
                 );
 
@@ -90,7 +92,8 @@ public:
         vertices.reserve(numVertices);
         indices.reserve(numIndices);
 
-        processNode(scene, scene->mRootNode, mShader, vertices, indices); 
+        processNode(scene, scene->mRootNode, mShader, vertices, indices);
+        
         initBuffers(vertices, indices);
 
         return true;
@@ -171,6 +174,8 @@ public:
         {
             aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
             aiTextureType texTypes[] = {
+                aiTextureType_NONE,
+                aiTextureType_UNKNOWN,
                 aiTextureType_DIFFUSE,
                 aiTextureType_SPECULAR,
                 aiTextureType_HEIGHT,
@@ -255,12 +260,15 @@ public:
         {
             aiString relativeTexFilePath;
             mat->GetTexture(type, i, &relativeTexFilePath);
-         
             Texture texture;
-            texture.id = textureManager.load(mTexturesDir.c_str(), relativeTexFilePath.C_Str() ); 
+            LOG("SSSS:" << relativeTexFilePath.C_Str());
+            LOG("NMAT:" << mat->GetTextureCount(type));
+            texture.id = textureManager.load(mTexturesDir.c_str(),  mReplaceTexturePath ? 
+                                                                    textureManager.getReplacedTexturePathFileName(relativeTexFilePath.C_Str(), "")
+                                                                    : relativeTexFilePath.C_Str() ); 
             texture.type = type;
             textures.push_back(texture);
-        }  
+        } 
     }
 
     void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)

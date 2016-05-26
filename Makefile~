@@ -12,5 +12,3 @@ $(TARGET): $(OBJS)
 clean:
 	$(RM) $(OBJS) $(TARGET)
 
-rebuild:
-	clean all

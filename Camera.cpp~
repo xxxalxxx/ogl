@@ -13,26 +13,20 @@ void Camera::updateOrientation(double mouseX, double mouseY)
     double mouseDy = mMouseSensitivityScalar * (mouseY - mPrevMouseY);
 
     mYaw -= mouseDx;//invert angle
-    mPitch += mouseDy;
-
     mPrevMouseX = mouseX;
-    mPrevMouseY = mouseY;
 
-   
-   // glm::quat orientation = glm::angleAxis(mPitch, RIGHT);
-    glm::quat orientation = glm::angleAxis(mYaw, UP);
-  //  orientation *= glm::angleAxis(mYaw, UP);
-    /*
-    glm::quat orientation = glm::angleAxis(mYaw, UP);
-    orientation *= glm::angleAxis(mPitch, RIGHT);
+    float newPitch = mPitch + mouseDy;
+    
+    if(fabs(newPitch) < M_PI_2)
+    {
+        mPitch = newPitch;
+        mPrevMouseY = mouseY;
+    }
+    
+    glm::quat orientation = glm::angleAxis(mPitch, RIGHT) 
+                          * glm::angleAxis(mYaw, UP);
+    mView = glm::mat4_cast(orientation);
 
-*/
-   // glm::vec3 look(mView[0].z, mView[1].z, mView[2].z);
-  //  glm::vec3 up(mView[0].y, mView[1].y, mView[2].y);
-    glm::vec3 right = glm::vec3(mView[0].x, mView[1].x, mView[2].x);
-    glm::quat o2 = glm::angleAxis(mPitch, right);
-    o2 *= orientation;
-    mView = glm::mat4_cast(o2);
     rebuildView();
 }
 
@@ -79,20 +73,21 @@ void Camera::moveSideways(float direction, float dt)
 void Camera::setFOV(float FOV)
 {   
     std::cout << "FOV " << FOV << std::endl; 
-    if(FOV < MIN_FOV_RADIANS)
+    mFOV = FOV;
+    Utils::clamp(mFOV, MIN_FOV_RADIANS, MAX_FOV_RADIANS);
+/*
+     if(FOV < MIN_FOV_RADIANS)
         mFOV = MIN_FOV_RADIANS;
     else if(FOV > MAX_FOV_RADIANS) 
         mFOV = MAX_FOV_RADIANS;
     else 
         mFOV = FOV;
+*/
 }
 
 void Camera::setFar(float far)
 {
-    if(far < 0.0f)
-        mFar = 0.0f;
-    else 
-        mFar = far;
+    mFar = far < 0.0f ? 0.0f : far;
      
     if(mNear > mFar)
         std::swap(mNear, mFar);
@@ -100,10 +95,7 @@ void Camera::setFar(float far)
 
 void Camera::setNear(float near)
 {
-    if(near < 0.0f)
-        mNear = 0.0f;
-    else 
-        mNear = near;
+    mNear = near < 0.0f ? 0.0f : near;
     
     if(mNear > mFar)
         std::swap(mNear, mFar);

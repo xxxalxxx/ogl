@@ -58,7 +58,7 @@ public:
                 mFileName,
                 mAiProcessArgs ? mAiProcessArgs :
                   aiProcess_Triangulate 
-                | aiProcess_FlipUVs 
+               // | aiProcess_FlipUVs 
                 | aiProcess_CalcTangentSpace
                 );
         // Check for errors
@@ -272,20 +272,19 @@ public:
        // LOG("ANIM PROCESS"); 
         aiMatrix4x4 animTransform = animNode->getAnimatedTransform(progress, animationIndex);
         aiMatrix4x4 currTransform = parentTransform * animTransform;
-        LOG("GOT ANIM");
+
         if(animNode->hasRelatedBone())
         {
-            LOG("HB:" << animNode->mBoneTransformIndex << "S:" << mNumBones);
-       //     LOG("IN UPD BONE:" << animNode->mBoneTransformIndex);
+
             //update bone
             BoneTransform& transforms = mBoneTransforms[animNode->mBoneTransformIndex];
-            LOG("AHB");
+
             transforms.mAnimatedTransform = mModelSpaceTransform * currTransform * transforms.mBoneSpaceTransform;
-            LOG("TRANSFORM");
+
             //change row-order, since assimp is cur for dx
             transforms.mAnimatedTransform = transforms.mAnimatedTransform.Transpose();
         }
-        LOG("A G A");
+
         for(size_t i=0;i<animNode->mChildren.size();++i)
         {            
             processAnimNode(progress, currTransform, animNode->mChildren[i] , animationIndex);
@@ -311,11 +310,11 @@ public:
             LOG("ERROR: WRONG ANIMATION INDEX");
             return;
         }
-        LOG("UDP");
+      //  LOG("UDP");
         aiMatrix4x4 initialTransform;
         float progress = currTime * mScene->mAnimations[0]->mTicksPerSecond;
         progress = fmod( progress, mScene->mAnimations[0]->mDuration);
-        LOG("PROCESS");
+      //  LOG("PROCESS");
         processAnimNode(progress, initialTransform, mAnimNodeRoot, animationIndex);
     }
     
