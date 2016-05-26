@@ -83,8 +83,9 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
 char* Shader::getFileString(const GLchar* path)
 {
     FILE* file = fopen(path,"r");
-    if(!file) return NULL; // { std::cout <<"exists\n"; } else { std::cout << "not\n";};
-    
+
+    if(!file) return NULL;
+
     fseek(file,0, SEEK_END);
     size_t size = ftell(file);
     

@@ -92,7 +92,9 @@ char* Shader::getFileString(const GLchar* path)
     char* fileString = new char[size];
 
     rewind(file);
-    fread(fileString, sizeof(char), size, file);
+    size_t result = fread(fileString, sizeof(char), size, file);
+    if(result != size) return NULL;
+
     fclose(file);
 
     return fileString;
