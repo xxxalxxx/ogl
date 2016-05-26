@@ -1,10 +1,11 @@
 #include <iostream>
+
 #include "Engine.h"
 
 #include "Shader.h"
 //#include "Quad.h"
-#include "model.h" 
-#include "skinned_model.h"
+#include "Model.h" 
+#include "SkinnedModel.h"
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {

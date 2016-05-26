@@ -1,14 +1,31 @@
-#include "model.h"
-#include "skinned_mesh.h"
+#include <math.h>
+
 #include <map>
 #include <stack>
-#include <math.h>
+
 #include "glm/gtx/string_cast.hpp"
 
+#include "Model.h"
+#include "AnimNode.h"
+
+#define BONES_PER_VERTEX 4
 
 class SkinnedModel : public Model 
 {
 public:
+
+    struct BoneTransform
+    {
+        aiMatrix4x4 mBoneSpaceTransform, mAnimatedTransform;
+    };
+
+
+    struct Bone
+    {
+        glm::ivec4 mBoneIndices;
+        glm::vec4 mWeights;
+    };
+
 
     const aiScene* mScene;
     Assimp::Importer importer;

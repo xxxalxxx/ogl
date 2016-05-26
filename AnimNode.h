@@ -1,20 +1,10 @@
-#include "mesh.h"
-#include <vector>
 #include <math.h>
+
+#include <vector>
+
 #include "glm/vec4.hpp"
-#define BONES_PER_VERTEX 4
 
-struct BoneTransform
-{
-    aiMatrix4x4 mBoneSpaceTransform, mAnimatedTransform;
-};
-
-
-struct Bone
-{
-    glm::ivec4 mBoneIndices;
-    glm::vec4 mWeights;
-};
+#include "Mesh.h"
 
 
 struct AnimNode 

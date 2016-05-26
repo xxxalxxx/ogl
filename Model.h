@@ -20,9 +20,10 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-#include "mesh.h"
+#include "Mesh.h"
 #include "TextureManager.h"
 #include "Utils.h"
+
 class Model 
 {
 public:
@@ -174,8 +175,6 @@ public:
         {
             aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
             aiTextureType texTypes[] = {
-                aiTextureType_NONE,
-                aiTextureType_UNKNOWN,
                 aiTextureType_DIFFUSE,
                 aiTextureType_SPECULAR,
                 aiTextureType_HEIGHT,

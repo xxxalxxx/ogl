@@ -6,7 +6,6 @@
 #include "model.h" 
 #include "skinned_model.h"
 
-#include <IL/il.h>
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
