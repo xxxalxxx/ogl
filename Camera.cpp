@@ -93,4 +93,3 @@ void Camera::setNear(float near)
         std::swap(mNear, mFar);
 }
 
-
