@@ -47,6 +47,17 @@ public:
 
     size_t mNumBones;
 
+    
+    SkinnedModel(
+            const std::string& fileName, 
+            Shader& shader,   
+            const std::string& texturesDir,
+            int aiProcessArgs = 0, 
+            bool gamma = false
+            ): SkinnedModel(fileName, shader, texturesDir.c_str(), aiProcessArgs, gamma)
+    {   
+    }
+
     SkinnedModel(
             const std::string& fileName, 
             Shader& shader,   
@@ -80,7 +91,7 @@ public:
         // Check for errors
         if(!mScene || mScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !mScene->mRootNode) // if is Not Zero
         {
-            std::cout << "ERROR::ASSIMP:: " << importer.GetErrorString() << std::endl;
+            LOG( "ERROR::ASSIMP:: " << importer.GetErrorString() );
             return false;
         }
 
@@ -340,38 +351,13 @@ public:
     {
 
         glGenVertexArrays(1, &mVAO);
- 
-        glGenBuffers(1, &mVBO);
-        glGenBuffers(1, &mEBO);
-        glGenBuffers(1, &mBoneBuffer);
-
+       
         glBindVertexArray(mVAO);
 
-        glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-        glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
-    
-        //Vertex Positions
-        glEnableVertexAttribArray(0);	
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
-        // Vertex Normals
-        glEnableVertexAttribArray(1);	
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Normal));
-        // Vertex Texture Coords
-        glEnableVertexAttribArray(2);	
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
-      
-        glBindBuffer(GL_ARRAY_BUFFER, mBoneBuffer);
-        glBufferData(GL_ARRAY_BUFFER, bones.size() * sizeof(bones[0]), &bones[0], GL_STATIC_DRAW);  
-     
-        glEnableVertexAttribArray(3);
-        glVertexAttribIPointer(3, 4, GL_INT, sizeof(Bone), (GLvoid*)0);
-     
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(Bone), (const GLvoid*)offsetof(Bone, mWeights));
-    
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
-    
+        initVertices(vertices);
+        initIndices(indices);
+        initBones(bones);
+
         glBindVertexArray(0);
      
     }
@@ -405,6 +391,21 @@ public:
 private:
     GLuint mBoneBuffer;  
 
+    void initBones(std::vector<Bone>& bones)
+    {
+        glGenBuffers(1, &mBoneBuffer);
+
+        glBindBuffer(GL_ARRAY_BUFFER, mBoneBuffer);
+        glBufferData(GL_ARRAY_BUFFER, bones.size() * sizeof(bones[0]), &bones[0], GL_STATIC_DRAW);  
+     
+        glEnableVertexAttribArray(5);
+        glVertexAttribIPointer(5, 4, GL_INT, sizeof(Bone), (GLvoid*)0);
+     
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(Bone), (const GLvoid*)offsetof(Bone, mWeights));
+
+    }
+    
     void unload()
     {
         Model::unload();

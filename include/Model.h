@@ -22,7 +22,7 @@
 
 #include "Mesh.h"
 #include "TextureManager.h"
-#include "Utils.h"
+#include "FileSystem.h"
 
 class Model 
 {
@@ -40,6 +40,16 @@ public:
     bool mReplaceTexturePath;
     std::vector<Texture> mTextures;
 
+    Model(const std::string& fileName, 
+          Shader& shader, 
+          const std::string& texturesDir,          
+          bool replaceTexturePath = false,  
+          int aiProcessArgs = 0, 
+          bool gamma = false
+         ): Model(fileName, shader, texturesDir, replaceTexturePath, aiProcessArgs, gamma)
+    {
+    }
+
     Model(
         const std::string& fileName, 
         Shader& shader, 
@@ -48,7 +58,7 @@ public:
         int aiProcessArgs = 0, 
         bool gamma = false
 
-        ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : Utils::getPathFromFileName(fileName) ), 
+        ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : FileSystem::getInstance().getPathFromFileName(fileName) ), 
         mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma), mReplaceTexturePath(replaceTexturePath)
     {
         LOG("MODEL_CREATE");  
@@ -254,6 +264,7 @@ public:
     void loadMaterialTextures(std::vector<Texture>& textures, aiMaterial* mat, aiTextureType type)
     {
         TextureManager& textureManager = TextureManager::getInstance();
+        FileSystem& fs = FileSystem::getInstance();
 
         for(GLuint i = 0; i < mat->GetTextureCount(type); i++)
         {
@@ -263,7 +274,7 @@ public:
             LOG("SSSS:" << relativeTexFilePath.C_Str());
             LOG("NMAT:" << mat->GetTextureCount(type));
             texture.id = textureManager.load(mTexturesDir.c_str(),  mReplaceTexturePath ? 
-                                                                    textureManager.getReplacedTexturePathFileName(relativeTexFilePath.C_Str(), "")
+                                                                    fs.getReplacedTexturePathFileName(relativeTexFilePath.C_Str(), "")
                                                                     : relativeTexFilePath.C_Str() ); 
             texture.type = type;
             textures.push_back(texture);
@@ -273,17 +284,24 @@ public:
     void initBuffers(const std::vector<Vertex>& vertices, const std::vector<GLuint>& indices)
     {
         glGenVertexArrays(1, &mVAO);
-        glGenBuffers(1, &mVBO);
-        glGenBuffers(1, &mEBO);
+        glBindVertexArray(mVAO);
 
+        initVertices(vertices);
+        initIndices(indices);
+
+        glBindVertexArray(0);
+
+    }
+
+    void initVertices(const std::vector<Vertex>& vertices)
+    {
+        glGenBuffers(1, &mVBO);
+        
         glBindVertexArray(mVAO);
 
         glBindBuffer(GL_ARRAY_BUFFER, mVBO);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
-        
+    
         //Vertex Positions
         glEnableVertexAttribArray(0);	
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
@@ -294,16 +312,23 @@ public:
         glEnableVertexAttribArray(2);	
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
         // Vertex Tangent
-      //  glEnableVertexAttribArray(3);
-      //  glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
         // Vertex Bitangent
-       // glEnableVertexAttribArray(4);
-       // glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
 
-        glBindVertexArray(0);
 
     }
-    
+
+    void initIndices(const std::vector<GLuint> indices)
+    {
+        glGenBuffers(1, &mEBO);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), &indices[0], GL_STATIC_DRAW);
+    }
+
 private:
 
 

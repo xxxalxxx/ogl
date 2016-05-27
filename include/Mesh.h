@@ -15,9 +15,10 @@
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "Utils.h"
 #include "Shader.h"
 
-#define LOG(x) std::cout<< x << std::endl
+
 
 struct Vertex {
     glm::vec3 Position, Normal, Tangent, Bitangent;

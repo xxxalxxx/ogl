@@ -13,6 +13,7 @@
 #include "Window.h"
 #include "Camera.h"
 #include "Timer.h"
+#include "FileSystem.h"
 
 class Engine
 {
@@ -31,6 +32,7 @@ public:
     Camera& getCamera();
     Window& getWindow();
     Timer& getTimer();
+    FileSystem& getFileSystem();
 
     void setFramebufferSizeCallback(GLFWframebuffersizefun cbfun);
     void setScrollCallback(GLFWscrollfun cbfun);
@@ -43,8 +45,6 @@ private:
     Window mWindow;
     Camera mCamera;
     Timer mTimer;
-
-
 };
 
 inline bool Engine::windowIsOpen()
@@ -70,6 +70,11 @@ inline Camera& Engine::getCamera()
 inline Window& Engine::getWindow()
 {
     return mWindow;
+}
+
+inline FileSystem& Engine::getFileSystem()
+{
+    return FileSystem::getInstance();
 }
 
 inline void Engine::pollEvents()

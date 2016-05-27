@@ -49,28 +49,9 @@ protected:
     struct Uniforms {GLuint program, worldViewProj, world, view, proj;} mUniforms;
 private:
     Shader mShader;
-    static const char * const mTextureTypeNames;
-    static const aiTextureType mTextureTypes;
-    static const size_t mNumTextureTypes;
+
 };
 
-
-// TODO: mode these to mesh technique
-inline const char * const Technique::mTextureTypeNames[] = {
-    "", "u_TextureDiffuse", "u_TextureSpecular", "u_TextureAmbient",
-    "u_TextureEmissive", "u_TextureHeight", "u_TextureNormals", 
-    "u_TextureShininess", "u_TextureOpacity", "u_TextureDisplacement",
-    "u_TextureLightMap", "u_TextureReflection", "" 
-};
-
-inline const size_t mNumTextureTypes = sizeof(Technique::mNumTextureTypeNames)/sizeof(Technique::mNumTextureTypeNames[0]);
-
-inline const char* getTextureName(aiTextureType t) const
-{
-    return mTextureTypes[t];
-}
-
-// end TODO
 
 inline Technique::Technique(const Shader& shader) : mShader(shader)
 {

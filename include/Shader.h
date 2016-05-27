@@ -2,21 +2,27 @@
 #define ALM_SHADER_H
 
 #include <stdio.h>
+
 #include <iostream>
+#include <string>
+
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
+#include "Utils.h"
+#include "FileSystem.h"
 
 class Shader
 {
 public:
     Shader();
+    bool init(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
     bool init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPath);
     void use();
     GLuint getProgram() const;
     
 private:
-    char* getFileString(const GLchar* path);
-    void logCompileError(GLuint handle);
+    void logCompileError(GLuint handle, const char* tag);
 
     GLuint mProgram;
 };

@@ -6,18 +6,24 @@ Shader::Shader()
 
 }
 
+bool Shader::init(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
+{
+    return init(vertexShaderPath.c_str(), fragmentShaderPath.c_str());
+}
+
 bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPath)
 { 
     GLint status;
     bool result = true;
-    const char* vertexShaderString = getFileString(vertexShaderPath);
+    FileSystem& fs = FileSystem::getInstance();
+
+    const char* vertexShaderString = fs.getFileString(vertexShaderPath);
     if(!vertexShaderString)
     {
         std::cout << "File at path "<< vertexShaderPath << " not found." << std::endl;
         return false;
     }
   
-  //  std::cout<< vertexShaderString <<"init shader\n";
     GLuint vertexShaderHandle = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(vertexShaderHandle, 1, &vertexShaderString, NULL);
     glCompileShader(vertexShaderHandle);
@@ -27,13 +33,11 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
 
     if(status == GL_FALSE)
     {
-        logCompileError(vertexShaderHandle);
+        logCompileError(vertexShaderHandle, "Vertex Shader::");
         result = false;  
     }
     
-
-
-    const char* fragmentShaderString = getFileString(fragmentShaderPath);
+    const char* fragmentShaderString = fs.getFileString(fragmentShaderPath);
  
     if(!vertexShaderString)
     {
@@ -50,7 +54,7 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
 
     if(status == GL_FALSE)
     {
-        logCompileError(fragmentShaderHandle);
+        logCompileError(fragmentShaderHandle, "Fragment Shader::");
         result = false;
     }
 
@@ -80,33 +84,13 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
     return result;
 }
 
-char* Shader::getFileString(const GLchar* path)
-{
-    FILE* file = fopen(path,"r");
-
-    if(!file) return NULL;
-
-    fseek(file,0, SEEK_END);
-    size_t size = ftell(file);
-    
-    char* fileString = new char[size];
-
-    rewind(file);
-    size_t result = fread(fileString, sizeof(char), size, file);
-    if(result != size) return NULL;
-
-    fclose(file);
-
-    return fileString;
-}
-
-void Shader::logCompileError(GLuint handle)
+void Shader::logCompileError(GLuint handle, const char* tag)
 {
      GLint infoLogLength;
      glGetShaderiv(handle, GL_INFO_LOG_LENGTH, &infoLogLength);
      GLchar* infoLog = new char[infoLogLength];
      glGetShaderInfoLog(handle, infoLogLength, NULL, infoLog);
-     std::cout<< "Shader compile error:" << std::endl << infoLog << std::endl;
+     std::cout << tag << "shader compile error:" << std::endl << infoLog << std::endl;
      delete[] infoLog;
 }
 
