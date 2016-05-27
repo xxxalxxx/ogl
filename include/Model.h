@@ -15,7 +15,6 @@
 #include "glm/mat4x4.hpp"
 #include "glm/vec3.hpp"
 
-#include <SOIL/SOIL.h>
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -23,6 +22,7 @@
 #include "Mesh.h"
 #include "TextureManager.h"
 #include "FileSystem.h"
+#include "ModelTechnique.h"
 
 class Model 
 {
@@ -33,33 +33,29 @@ public:
     std::string mFileName;
     std::string mTexturesDir;
   
-    Shader& mShader;
     int mAiProcessArgs;
    
     bool gammaCorrection;
     bool mReplaceTexturePath;
-    std::vector<Texture> mTextures;
+    std::vector<std::vector<Texture> > mMaterials;
 
     Model(const std::string& fileName, 
-          Shader& shader, 
           const std::string& texturesDir,          
           bool replaceTexturePath = false,  
           int aiProcessArgs = 0, 
           bool gamma = false
-         ): Model(fileName, shader, texturesDir, replaceTexturePath, aiProcessArgs, gamma)
+         ): Model(fileName, texturesDir, replaceTexturePath, aiProcessArgs, gamma)
     {
     }
 
     Model(
         const std::string& fileName, 
-        Shader& shader, 
         const char* texturesDir = NULL,          
         bool replaceTexturePath = false,  
         int aiProcessArgs = 0, 
         bool gamma = false
-
-        ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : FileSystem::getInstance().getPathFromFileName(fileName) ), 
-        mShader(shader), mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma), mReplaceTexturePath(replaceTexturePath)
+        ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : FileSystem::getInstance().getPathFromFileName(fileName) )
+        , mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma), mReplaceTexturePath(replaceTexturePath)
     {
         LOG("MODEL_CREATE");  
     }
@@ -102,23 +98,26 @@ public:
         
         vertices.reserve(numVertices);
         indices.reserve(numIndices);
+        mMaterials.resize(scene->mNumMaterials);
 
-        processNode(scene, scene->mRootNode, mShader, vertices, indices);
+        processNode(scene, scene->mRootNode, vertices, indices);
         
         initBuffers(vertices, indices);
 
         return true;
     }
 
-    void draw(glm::mat4& viewProj, const Shader& shader)
+    void draw(ModelTechnique& tech)
     {
-        glm::mat4 MVP = viewProj;
-        glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+       // glm::mat4 MVP = viewProj;
+     //   glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+       
         glBindVertexArray(mVAO);
 
         for(GLuint i = 0; i < mMeshes.size(); i++)
-            mMeshes[i].draw();
-
+        {
+            mMeshes[i].draw(mMaterials, tech);
+        }
         glBindVertexArray(0);
     }
 
@@ -127,8 +126,6 @@ public:
              std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
     {
         LOG("MODEL PROCESS MESH");
-
-        std::vector<Texture> textures;
 
         size_t baseVertex = vertices.size();
         size_t baseIndex  = indices.size();
@@ -183,6 +180,11 @@ public:
   
         if(mesh->mMaterialIndex >= 0)
         {
+
+            
+            std::vector<Texture>& textures = mMaterials[mesh->mMaterialIndex];
+
+
             aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
             aiTextureType texTypes[] = {
                 aiTextureType_DIFFUSE,
@@ -196,16 +198,18 @@ public:
             {
                 loadMaterialTextures(textures, material, texTypes[i]);
             }
+            
         }
         
         size_t numIndices = indices.size() - baseIndex; 
+        
+
 
         Mesh ret(
                 numIndices,
                 mesh->mMaterialIndex,
                 baseVertex,
-                baseIndex,
-                textures);
+                baseIndex);
 
         return ret;
     }
@@ -244,7 +248,7 @@ public:
 
 
   
-    void processNode(const aiScene* scene, aiNode* node, const Shader& shader,
+    void processNode(const aiScene* scene, aiNode* node,
             std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
     {
         for(size_t i=0;i<node->mNumMeshes;++i)
@@ -256,7 +260,7 @@ public:
 
         for(size_t i=0;i<node->mNumChildren;++i)
         {
-            processNode(scene, node->mChildren[i], shader, vertices, indices);
+            processNode(scene, node->mChildren[i], vertices, indices);
         }
     }
 
@@ -271,7 +275,7 @@ public:
             aiString relativeTexFilePath;
             mat->GetTexture(type, i, &relativeTexFilePath);
             Texture texture;
-            LOG("SSSS:" << relativeTexFilePath.C_Str());
+            LOG("REL P:" << relativeTexFilePath.C_Str());
             LOG("NMAT:" << mat->GetTextureCount(type));
             texture.id = textureManager.load(mTexturesDir.c_str(),  mReplaceTexturePath ? 
                                                                     fs.getReplacedTexturePathFileName(relativeTexFilePath.C_Str(), "")
@@ -302,23 +306,20 @@ public:
         glBindBuffer(GL_ARRAY_BUFFER, mVBO);
         glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), &vertices[0], GL_STATIC_DRAW);  
     
-        //Vertex Positions
         glEnableVertexAttribArray(0);	
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)0);
-        // Vertex Normals
+
         glEnableVertexAttribArray(1);	
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Normal));
-        // Vertex Texture Coords
+
         glEnableVertexAttribArray(2);	
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, TexCoords));
-        // Vertex Tangent
+
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Tangent));
-        // Vertex Bitangent
+
         glEnableVertexAttribArray(4);
         glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (GLvoid*)offsetof(Vertex, Bitangent));
-
-
     }
 
     void initIndices(const std::vector<GLuint> indices)

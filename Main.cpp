@@ -6,6 +6,7 @@
 //#include "Quad.h"
 #include "Model.h" 
 #include "SkinnedModel.h"
+#include "SkinnedModelTechnique.h"
 
 int main()
 {
@@ -29,22 +30,30 @@ int main()
     if(!modelNanosuit.init()) return -1;
 */
     //abs path needed for linking shaders if bin is run form different directory
-    Shader skinnedModelShader;
-    if(!skinnedModelShader.init(fs.getAbsPath("Shaders/skinned_model.vert"),
-                                fs.getAbsPath("Shaders/skinned_model.frag"))) return -1;
+ //   if(!skinnedModelShader.init(fs.getAbsPath("Shaders/skinned_model.vert"),
+ //                               fs.getAbsPath("Shaders/skinned_model.frag"))) return -1;
 
-    skinnedModelShader.use();
 
+  
     SkinnedModel sk(
             fs.getAbsPath("res/mesh/dwarf/dwarf.x"),
   // "res/mesh/guard/boblampclean.md5mesh",
-            skinnedModelShader,
             fs.getAbsPath("res/mesh/dwarf/"),
             true 
            );
 
 
     if(!sk.init()) return -1;
+    
+    Shader skinnedModelShader;
+    SkinnedModelTechnique skTech(skinnedModelShader,
+            fs.getAbsPath("Shaders/skinned_model.vert"),
+           fs.getAbsPath("Shaders/skinned_model.frag"));
+
+    skTech.setHandleBoneTransforms(sk.mNumBones)
+          .setHandleMaterials(sk.mMaterials)
+          .setHandleWorldViewProj()
+          .use();
 
     Timer& timer = engine.getTimer();
     Camera& camera = engine.getCamera();
@@ -60,13 +69,15 @@ int main()
     
         glm::mat4 viewProj = proj * view;
         
+        skTech.setUniformWorldViewProj(viewProj);
+
         engine.pollEvents();
         engine.handleCameraMovement(dt);
  
         glClearColor(0.0f,0.0f,0.3f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
         sk.update(timer.getCurrentTime());
-        sk.draw(viewProj, skinnedModelShader);
+        sk.draw(skTech);
 
         engine.swapBuffers();
     }

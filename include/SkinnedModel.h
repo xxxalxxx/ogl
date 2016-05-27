@@ -7,6 +7,7 @@
 
 #include "Model.h"
 #include "AnimNode.h"
+#include "SkinnedModelTechnique.h"
 
 #define BONES_PER_VERTEX 4
 
@@ -50,21 +51,19 @@ public:
     
     SkinnedModel(
             const std::string& fileName, 
-            Shader& shader,   
             const std::string& texturesDir,
             int aiProcessArgs = 0, 
             bool gamma = false
-            ): SkinnedModel(fileName, shader, texturesDir.c_str(), aiProcessArgs, gamma)
+            ): SkinnedModel(fileName, texturesDir.c_str(), aiProcessArgs, gamma)
     {   
     }
 
     SkinnedModel(
             const std::string& fileName, 
-            Shader& shader,   
             const char* texturesDir = NULL,
             int aiProcessArgs = 0, 
             bool gamma = false
-            ): Model(fileName, shader, texturesDir, aiProcessArgs, gamma), mScene(NULL), mNumBones(0)
+            ): Model(fileName, texturesDir, aiProcessArgs, gamma), mScene(NULL), mNumBones(0)
     {   
     }
 
@@ -130,7 +129,8 @@ public:
         vertices.reserve(numVertices);
         indices.reserve(numIndices);
         bones.resize(numVertices);
-        
+        mMaterials.resize(mScene->mNumMaterials);
+
 
         sk_nodes_container_t animNodeChecklist;
         sk_model_container_t boneNameIndices;
@@ -363,24 +363,24 @@ public:
     }
 
 
-    void draw(glm::mat4& viewProj, const Shader& shader)
+    void draw(SkinnedModelTechnique& tech)
     {
         glBindVertexArray(mVAO);
-        glm::mat4 MVP = viewProj;
-        glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
+     //  glm::mat4 MVP = viewProj;
+     //   glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), "u_MVP"), 1, GL_FALSE, glm::value_ptr(MVP));
         
         for(size_t i=0;i<mBoneTransforms.size();++i)
         {
-            std::string boneStr("u_Bones["+ std::to_string(i) + "]");
+          //  std::string bonestr("u_bones["+ std::to_string(i) + "]");
             aiMatrix4x4 t = mBoneTransforms[i].mAnimatedTransform;
-
-            glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), boneStr.c_str()), 1, GL_FALSE, &t.a1);
+            tech.setUniformBoneTransform(i, t);
+           // glUniformMatrix4fv(glGetUniformLocation(shader.getProgram(), boneStr.c_str()), 1, GL_FALSE, &t.a1);
         }
 
 
         for(size_t i=0; i<mMeshes.size();++i)
         {
-            mMeshes[i].draw();
+            mMeshes[i].draw(mMaterials, tech);
         }
 
         glBindVertexArray(0);

@@ -11,7 +11,7 @@ out vec2 v_TexCoords;
 
 #define MAX_BONES 100
 
-uniform mat4 u_MVP;
+uniform mat4 u_WVP;
 uniform mat4 u_Bones[MAX_BONES];
 
 
@@ -22,7 +22,7 @@ void main()
     boneTransform += u_Bones[a_BoneIndices.z] * a_Weights.z;  
     boneTransform += u_Bones[a_BoneIndices.w] * a_Weights.w;
 
-    gl_Position = u_MVP * boneTransform * vec4(a_Position, 1.0);
+    gl_Position = u_WVP * boneTransform * vec4(a_Position, 1.0);
     v_TexCoords = a_TexCoords;
 }
 
