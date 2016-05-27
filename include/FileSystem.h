@@ -1,5 +1,5 @@
-#ifndef ALM_FILESYSTEM
-#define ALM_FILESYSTEM
+#ifndef ALM_FILESYSTEM_H
+#define ALM_FILESYSTEM_H
 
 #include <limits.h>
 #include <stdio.h>

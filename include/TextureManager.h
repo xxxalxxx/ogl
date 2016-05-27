@@ -1,5 +1,5 @@
-#ifndef ALM_TEXTURE_MANAGER
-#define ALM_TEXTURE_MANAGER
+#ifndef ALM_TEXTURE_MANAGER_H
+#define ALM_TEXTURE_MANAGER_H
 
 #include <string.h>
 

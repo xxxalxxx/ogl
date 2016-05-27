@@ -1,5 +1,5 @@
-#ifndef ALM_MESH_TECHNIQUE
-#define ALM_MESH_TECHNIQUE
+#ifndef ALM_MESH_TECHNIQUE_H
+#define ALM_MESH_TECHNIQUE_H
 
 #include <vector>
 #include <string>

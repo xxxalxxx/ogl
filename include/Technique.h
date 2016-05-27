@@ -1,5 +1,5 @@
-#ifndef ALM_TECHNIQUE
-#define ALM_TECHNIQUE
+#ifndef ALM_TECHNIQUE_H
+#define ALM_TECHNIQUE_H
 
 #include <GL/glew.h> 
 

@@ -1,5 +1,5 @@
-#ifndef ALM_UTILS
-#define ALM_UTILS
+#ifndef ALM_UTILS_H
+#define ALM_UTILS_H
 
 #include <iostream>
 
