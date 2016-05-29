@@ -34,16 +34,18 @@ public:
     SkinnedModel(
             const std::string& fileName, 
             const std::string& texturesDir,
-            int aiProcessArgs = 0, 
-            bool gamma = false
-            );
+            unsigned int modelFlags = 0,
+            int aiProcessArgs = aiProcess_Triangulate  
+                                | aiProcess_FlipUVs 
+                                | aiProcess_CalcTangentSpace);
 
     SkinnedModel(
             const std::string& fileName, 
-            const char* texturesDir = NULL,
-            int aiProcessArgs = 0, 
-            bool gamma = false
-            );
+            const char* texturesDir = NULL, 
+            unsigned int modelFlags = 0,
+            int aiProcessArgs = aiProcess_Triangulate  
+                                | aiProcess_FlipUVs 
+                                | aiProcess_CalcTangentSpace);
 
     ~SkinnedModel();
 
@@ -55,7 +57,9 @@ public:
     void draw(SkinnedModelTechnique& tech);
     
     size_t mNumBones;
+
 private:
+
     typedef std::map<std::string, unsigned int> sk_model_container_t;
     typedef sk_model_container_t::iterator sk_model_iter_t;
     typedef std::pair<std::string, unsigned int> sk_model_pair_t;
@@ -63,8 +67,6 @@ private:
     typedef std::map<aiNode*, int> sk_nodes_container_t;
     typedef sk_nodes_container_t::iterator sk_nodes_iter_t;
     typedef std::pair<aiNode*, unsigned int> sk_nodes_pair_t;
-   
-
 
     void createAnimNode(const aiScene* scene, aiNode* node, AnimNode* parent, sk_nodes_container_t& animNodeChecklist);
     
@@ -78,10 +80,9 @@ private:
 
     void initBuffers(std::vector<Vertex>& vertices,  std::vector<GLuint>& indices,  std::vector<Bone>& bones);
     void initBones(std::vector<Bone>& bones);
-       
+   
     void unload();
     void deleteAnimNodes(AnimNode* node);
-
 
 
     const aiScene* mScene;
@@ -93,7 +94,7 @@ private:
 
     std::vector<BoneTransform> mBoneTransforms;
     aiMatrix4x4 mModelSpaceTransform;
-
+    
     GLuint mBoneBuffer;  
    
 };

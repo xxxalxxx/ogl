@@ -1,24 +1,36 @@
 #include "Model.h"
 
 Model::Model(const std::string& fileName, 
-      const std::string& texturesDir,          
-      bool replaceTexturePath/* = false */,  
-      int aiProcessArgs/* = 0 */, 
-      bool gamma/* = false */
-     ): Model(fileName, texturesDir, replaceTexturePath, aiProcessArgs, gamma)
+      const std::string& texturesDir,              
+      unsigned int modelFlags/* = 0 */,
+      int aiProcessArgs /* aiProcess_Triangulate  
+                        | aiProcess_FlipUVs 
+                        | aiProcess_CalcTangentSpace */
+     ): Model(fileName, texturesDir.c_str(), modelFlags, aiProcessArgs)
 {
 }
 
 Model::Model(
     const std::string& fileName, 
-    const char* texturesDir/* = NULL */,          
-    bool replaceTexturePath/* = false */,  
-    int aiProcessArgs/* = 0 */, 
-    bool gamma/* = false */
+    const char* texturesDir/* = NULL */,              
+    unsigned int modelFlags/* = 0 */,
+    int aiProcessArgs /* = aiProcess_Triangulate  
+                        | aiProcess_FlipUVs 
+                        | aiProcess_CalcTangentSpace */
+
     ) : mFileName(fileName), mTexturesDir(texturesDir ? texturesDir : FileSystem::getInstance().getPathFromFileName(fileName) )
-    , mAiProcessArgs(aiProcessArgs), gammaCorrection(gamma), mReplaceTexturePath(replaceTexturePath)
+    , mAiProcessArgs(aiProcessArgs), mModelFlags(modelFlags), mVAO(0), mVBO(0), mEBO(0)
 {
-    LOG("MODEL_CREATE");  
+    LOG("MODEL_CREATE"); 
+
+
+    if(modelFlags & ModelFlag_USE_ABS_PATH)
+    {
+        FileSystem& fs = FileSystem::getInstance();
+        mFileName = fs.getAbsPath(mFileName);
+        mTexturesDir = fs.getAbsPath(mTexturesDir);
+    }
+
 }
 
 Model::~Model()
@@ -32,12 +44,7 @@ bool Model::init()
     LOG("MODEL INIT");
     
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(mFileName, 
-            mAiProcessArgs ? mAiProcessArgs :
-              aiProcess_Triangulate 
-         //   | aiProcess_FlipUVs 
-            | aiProcess_CalcTangentSpace
-            );
+    const aiScene* scene = importer.ReadFile(mFileName, mAiProcessArgs);
 
     if(!scene || scene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) 
     {
@@ -77,6 +84,24 @@ void Model::draw(ModelTechnique& tech)
         mMeshes[i].draw(mMaterials, tech);
     }
     glBindVertexArray(0);
+}
+
+
+
+void Model::processNode(const aiScene* scene, aiNode* node,
+        std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
+{
+    for(size_t i=0;i<node->mNumMeshes;++i)
+    {
+        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]]; 
+        mMeshes.push_back(processMesh(scene, mesh, vertices, indices));
+    }
+
+
+    for(size_t i=0;i<node->mNumChildren;++i)
+    {
+        processNode(scene, node->mChildren[i], vertices, indices);
+    }
 }
 
 
@@ -135,10 +160,10 @@ Mesh Model::processMesh(const aiScene* scene, aiMesh* mesh,
         }
        
     }
-
+    LOG("B4MI");
     if(mesh->mMaterialIndex >= 0)
     {
-
+    
         
         std::vector<Texture>& textures = mMaterials[mesh->mMaterialIndex];
 
@@ -152,6 +177,7 @@ Mesh Model::processMesh(const aiScene* scene, aiMesh* mesh,
         };
 
         size_t n = sizeof(texTypes)/sizeof(texTypes[0]);
+        LOG("TEXES:" << n );
         for(size_t i=0;i<n;++i)
         {
             loadMaterialTextures(textures, material, texTypes[i]);
@@ -202,39 +228,24 @@ void Model::unload()
 }
 
 
-
-void Model::processNode(const aiScene* scene, aiNode* node,
-        std::vector<Vertex>& vertices, std::vector<GLuint>& indices)
-{
-    for(size_t i=0;i<node->mNumMeshes;++i)
-    {
-        aiMesh* mesh = scene->mMeshes[node->mMeshes[i]]; 
-        mMeshes.push_back(processMesh(scene, mesh, vertices, indices));
-    }
-
-
-    for(size_t i=0;i<node->mNumChildren;++i)
-    {
-        processNode(scene, node->mChildren[i], vertices, indices);
-    }
-}
-
-
 void Model::loadMaterialTextures(std::vector<Texture>& textures, aiMaterial* mat, aiTextureType type)
 {
     TextureManager& textureManager = TextureManager::getInstance();
     FileSystem& fs = FileSystem::getInstance();
-
+    bool stripTexPath = mModelFlags & ModelFlag_STRIP_TEXTURE_PATH;
+    bool useGamma = mModelFlags & ModelFlag_USE_GAMMA;
+    
     for(GLuint i = 0; i < mat->GetTextureCount(type); i++)
     {
+        LOG("bp");
         aiString relativeTexFilePath;
         mat->GetTexture(type, i, &relativeTexFilePath);
         Texture texture;
         LOG("REL P:" << relativeTexFilePath.C_Str());
-        LOG("NMAT:" << mat->GetTextureCount(type));
-        texture.id = textureManager.load(mTexturesDir.c_str(),  mReplaceTexturePath ? 
-                                                                fs.getReplacedTexturePathFileName(relativeTexFilePath.C_Str(), "")
-                                                                : relativeTexFilePath.C_Str() ); 
+
+        texture.id = textureManager.load(mTexturesDir.c_str(),  stripTexPath ? 
+                                                                fs.getStrippedFileName(relativeTexFilePath.C_Str())
+                                                                : relativeTexFilePath.C_Str(), useGamma ); 
         texture.type = type;
         textures.push_back(texture);
     } 

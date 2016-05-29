@@ -1,15 +1,7 @@
 #include "TextureManager.h"
-
+#include <stdio.h>
 TextureManager::TextureManager(): mFileSystem(FileSystem::getInstance())
 {
-    ilInit();
-    ILuint err = ilGetError();
-
-    if(err != IL_NO_ERROR)
-    {
-        LOG("IL INIT ERR:" << err );
-        exit(1);
-    }
 }
 
 TextureManager::~TextureManager()
@@ -46,8 +38,6 @@ GLuint TextureManager::load(const char* path, bool gamma /* = false */)
     return load(pathStr, gamma);
 }
 
-
-
 GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
 {
     LOG("BEFORE PATH");
@@ -62,37 +52,25 @@ GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
     }
 
     GLuint textureId;
-    ILuint imgId;
-    ILubyte* img;
-    int w, h;
+    GLenum formats[] = {0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
+    int w=0, h=0, channels=0;
+    GLenum format;
 
+    unsigned char* img =  stbi_load(path.c_str(), &w, &h, &channels, 0);// SOIL_load_image(path.c_str(), &w, &h, &channels, SOIL_LOAD_AUTO); 
 
-    ilGenImages(1, &imgId);
-    ilBindImage(imgId);
-    ilEnable(IL_ORIGIN_SET);
-    ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
-    
-    ilLoadImage(path.c_str());
-    ilConvertImage(IL_RGBA, GL_UNSIGNED_BYTE); 
-
-    img = ilGetData();
-    w = ilGetInteger(IL_IMAGE_WIDTH);
-    h = ilGetInteger(IL_IMAGE_HEIGHT);
-    // type = ilGetInteger(IL_IMAGE_TYPE);
-  //  format = ilGetInteger(IL_IMAGE_FORMAT);
-
-    ILuint err = ilGetError();
-
-    if(err != IL_NO_ERROR)
+    LOG("AFTER LOAD:" << channels << " w:" << w << " h" << h);
+    if(!channels || !w || !h)
     {
-        LOG("IL LOAD ERR:" << err );
+        LOG("ERROR: " << stbi_failure_reason()  << " ch:"<< channels << " w:" << w << "h:" << h);
         exit(1);
     }
-    
+    format = formats[channels];
+
+   
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img);
-
+    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, img);
+   
     glGenerateMipmap(GL_TEXTURE_2D);	
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
@@ -101,10 +79,8 @@ GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
     glBindTexture(GL_TEXTURE_2D, 0);
 
     mCurrTextureHandles.insert(tex_pair_t(path, textureId ));
+    stbi_image_free(img);
 
-    ilBindImage(0);
-    ilDeleteImage(imgId);
-    
     return textureId;
 }
 
@@ -120,3 +96,21 @@ void TextureManager::unload()
 }
 
 
+/*ilGenImages(1, &imgId);
+
+ilBindImage(imgId);
+
+ilEnable(IL_ORIGIN_SET);
+ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
+
+ilLoadImage(path.c_str());
+
+ilConvertImage(IL_RGB, GL_UNSIGNED_BYTE); 
+
+img = ilGetData();
+w = ilGetInteger(IL_IMAGE_WIDTH);
+h = ilGetInteger(IL_IMAGE_HEIGHT);
+type = ilGetInteger(IL_IMAGE_TYPE);
+format = ilGetInteger(IL_IMAGE_FORMAT);
+ilBindImage(0);
+ilDeleteImage(imgId);*/

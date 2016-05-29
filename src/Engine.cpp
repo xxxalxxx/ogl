@@ -1,5 +1,5 @@
 #include "Engine.h"
-
+#include "Utils.h"
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mode)
 {
     if(key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
@@ -107,24 +107,23 @@ bool Engine::init()
     if(!mWindow.init()) return false;
 
     glewExperimental = GL_TRUE;
-   
+
     if (glewInit() != GLEW_OK)
     {
         std::cout << "Failed to initialize GLEW" << std::endl;
         return false;
     }
 
-
     glfwSetWindowUserPointer(mWindow.getGLFWwindow(), this);
-
-    glViewport(0, 0, mWindow.getWidth(), mWindow.getHeight());
     
+    glViewport(0, 0, mWindow.getWidth(), mWindow.getHeight());
+
     setKeyCallback(keyCallback);
     setCursorPosCallback(cursorPosCallback);
     setMouseButtonCallback(mouseButtonCallback);
     setScrollCallback(scrollCallback);
     setFramebufferSizeCallback(framebufferSizeCallback);
-   
+
     return true;
 }
 

@@ -29,7 +29,8 @@ public:
     std::string getAbsPath(const std::string& fileName);
     std::string getBinAbsPath();
     std::string getCurrPath();
-    
+    std::string getStrippedFileName(const char* fileName);
+    std::string getStrippedFileName(const std::string& fileName);
     char* getFileString(const char* path);
 
 private:

@@ -1,15 +1,13 @@
 #version 330 core
 in vec2 v_TexCoord;
-out vec4 color;
 
-uniform sampler2D texture_diffuse1;
+#define MAX_DIFFUSE_TEX 8
+
+uniform sampler2D u_TextureDiffuse[MAX_DIFFUSE_TEX];
 
 void main()
-{
-    color = texture(texture_diffuse1, v_TexCoord);
+{    
+    gl_FragColor = vec4(texture(u_TextureDiffuse[0], v_TexCoord).rgb, 1.0);
 }
-
-
-
 
 

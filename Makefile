@@ -4,14 +4,14 @@ SRC_DIR := src
 OBJ_DIR := obj
 
 TARGET=$(BIN_DIR)/myengine
-SRCS=Main.cpp FileSystem.cpp TextureManager.cpp Window.cpp Engine.cpp Camera.cpp Shader.cpp Quad.cpp ModelTechnique.cpp SkinnedModelTechnique.cpp SkinnedModel.cpp Model.cpp AnimNode.cpp Mesh.cpp 
+SRCS=Main.cpp FileSystem.cpp TextureManager.cpp Window.cpp Engine.cpp Camera.cpp Shader.cpp Quad.cpp Technique.cpp  ModelTechnique.cpp SkinnedModelTechnique.cpp SkinnedModel.cpp Model.cpp AnimNode.cpp Mesh.cpp 
 OBJS=$(patsubst %.cpp,$(OBJ_DIR)/%.o, $(SRCS))
 VPATH=include:src
 
 CXX=g++
-CXXFLAGS=-O2 -Wall -Werror -std=c++11 -I. -Isrc -Iinclude
+CXXFLAGS=-Wall -Werror -std=c++11 -I. -Isrc -Iinclude
 RM=rm -f
-LDLIBS=$(shell pkg-config --libs glfw3) -lm -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -ldl -pthread -lSOIL -lassimp -lIL
+LDLIBS=$(shell pkg-config --libs glfw3) -lm -lGLEW -lglfw3 -lGL -lX11 -lXi -lXrandr -lXxf86vm -lXinerama -lXcursor -lrt -lm -ldl -pthread -lassimp
 
 all: clean $(TARGET)
 

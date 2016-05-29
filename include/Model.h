@@ -25,22 +25,29 @@
 #include "FileSystem.h"
 #include "ModelTechnique.h"
 
+#define ModelFlag_USE_GAMMA 1
+#define ModelFlag_STRIP_TEXTURE_PATH 2
+#define ModelFlag_USE_ABS_PATH 4
+
 class Model 
 {
 public:
     Model(const std::string& fileName, 
-          const std::string& texturesDir,          
-          bool replaceTexturePath = false,  
-          int aiProcessArgs = 0, 
-          bool gamma = false
+          const std::string& texturesDir,
+          unsigned int modelFlags = 0,
+          int aiProcessArgs = aiProcess_Triangulate  
+                                | aiProcess_FlipUVs 
+                                | aiProcess_CalcTangentSpace
+
          );
 
     Model(
         const std::string& fileName, 
         const char* texturesDir = NULL,          
-        bool replaceTexturePath = false,  
-        int aiProcessArgs = 0, 
-        bool gamma = false
+        unsigned int modelFlags = 0,
+        int aiProcessArgs = aiProcess_Triangulate  
+                                | aiProcess_FlipUVs 
+                                | aiProcess_CalcTangentSpace
         );
 
     virtual ~Model();
@@ -56,7 +63,10 @@ public:
     std::string mTexturesDir;
 
     std::vector<std::vector<Texture> > mMaterials;
-  
+     
+    int mAiProcessArgs; 
+    unsigned int mModelFlags;
+
 protected:
     Mesh processMesh(const aiScene* scene, aiMesh* mesh, 
              std::vector<Vertex>& vertices, std::vector<GLuint>& indices);
@@ -71,12 +81,6 @@ protected:
     void initIndices(const std::vector<GLuint>& indices);
 
     void countMeshData(const aiScene* scene, size_t& outNumVertices, size_t& outNumIndices);
-
-  
-    int mAiProcessArgs;
-   
-    bool gammaCorrection;
-    bool mReplaceTexturePath;
 
     GLuint mVAO, mVBO, mEBO;
 

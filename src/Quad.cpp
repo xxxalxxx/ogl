@@ -11,13 +11,10 @@ Quad::~Quad()
 }
 
 
-void Quad::init(GLuint program, const char* texturePath)
+void Quad::init(const char* texturePath)
 {
     initBuffers();
-    initUniforms(program);
-    initTextures(texturePath);
-    
-    mModel = glm::mat4();
+    initTextures(texturePath);    
 }
 
 void Quad::initBuffers()
@@ -60,41 +57,26 @@ void Quad::initBuffers()
 
     
 }
-
-void Quad::initUniforms(GLuint program)
-{
-    Uniforms.program = program;
-    Uniforms.MVP = glGetUniformLocation(program, "u_MVP");
-    Uniforms.sampler = glGetUniformLocation(program, "u_Sampler");
-}
-
 void Quad::initTextures(const char* texturePath)
 {
-    glGenTextures(1, &Uniforms.texture);
-    glBindTexture(GL_TEXTURE_2D, Uniforms.texture);
-
-    int w, h;
-    unsigned char* img = SOIL_load_image(texturePath, &w, &h, 0, SOIL_LOAD_RGB);
-    
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    SOIL_free_image_data(img);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    mTexture = TextureManager::getInstance().load(texturePath);
 }
 
-void Quad::draw(const glm::mat4& viewProj, float dt)
+void Quad::update(float dt)
 {
-   
-    glm::mat4 MVP = viewProj * mModel;
+
+}
+
+void Quad::draw(Technique& tech)
+{
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, Uniforms.texture);
-    glUniformMatrix4fv(Uniforms.MVP, 1, GL_FALSE, glm::value_ptr(MVP) );
-    glUniform1i(Uniforms.sampler, 0);
+    glBindTexture(GL_TEXTURE_2D, mTexture);
+    tech.setUniformSampler(0);
 
     glBindVertexArray(mVAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, 0);
 }

@@ -3,7 +3,7 @@
 #include "Engine.h"
 #include "FileSystem.h"
 #include "Shader.h"
-//#include "Quad.h"
+#include "Quad.h"
 #include "Model.h" 
 #include "SkinnedModel.h"
 #include "SkinnedModelTechnique.h"
@@ -14,46 +14,49 @@ int main()
 
     if(!engine.init()) return -1;
 
-    FileSystem& fs = engine.getFileSystem();
-
     glEnable(GL_DEPTH_TEST);
-/*
-    Shader modelShader;
-    if(!modelShader.init("Shaders/shader.vs", "Shaders/shader.frag")) return -1;
-    modelShader.use();
-    Model modelNanosuit(
-           "res/mesh/guard/boblampclean.md5mesh", // "res/mesh/police/Police.obj",
-            modelShader,
-            "res/mesh/guard/"// "res/mesh/police/Texture",
-            );
 
-    if(!modelNanosuit.init()) return -1;
-*/
-    //abs path needed for linking shaders if bin is run form different directory
- //   if(!skinnedModelShader.init(fs.getAbsPath("Shaders/skinned_model.vert"),
- //                               fs.getAbsPath("Shaders/skinned_model.frag"))) return -1;
-
-
-  
-    SkinnedModel sk(
-            fs.getAbsPath("res/mesh/dwarf/dwarf.x"),
-  // "res/mesh/guard/boblampclean.md5mesh",
-            fs.getAbsPath("res/mesh/dwarf/"),
-            true 
+    Technique qTech("Shaders/quad.vert", "Shaders/quad.frag");
+    qTech.setHandleSampler().setHandleWorldViewProj();
+    Quad q;   
+    q.init(FileSystem::getInstance().getAbsPath("res/img.jpg").c_str());
+    SkinnedModel sk("res/mesh/dwarf/dwarf.x",
+                    "res/mesh/dwarf/",
+                    ModelFlag_STRIP_TEXTURE_PATH | ModelFlag_USE_ABS_PATH
            );
 
-
     if(!sk.init()) return -1;
-    
-    Shader skinnedModelShader;
-    SkinnedModelTechnique skTech(skinnedModelShader,
-            fs.getAbsPath("Shaders/skinned_model.vert"),
-           fs.getAbsPath("Shaders/skinned_model.frag"));
+
+    SkinnedModelTechnique skTech("Shaders/skinned_model.vert",
+                                 "Shaders/skinned_model.frag");
 
     skTech.setHandleBoneTransforms(sk.mNumBones)
           .setHandleMaterials(sk.mMaterials)
-          .setHandleWorldViewProj()
-          .use();
+          .setHandleWorldViewProj();
+
+    
+    Model model("res/mesh/guard/boblampclean.md5mesh",
+                "res/mesh/guard/",
+                ModelFlag_USE_ABS_PATH);
+
+    if(!model.init()) return -1;
+
+    ModelTechnique mTech("Shaders/model.vert",
+                         "Shaders/model.frag");
+
+    mTech.setHandleMaterials(model.mMaterials)
+         .setHandleWorldViewProj();
+     
+    Model model2("res/mesh/nanosuit/nanosuit.obj", 
+                 "res/mesh/nanosuit/",
+                 ModelFlag_USE_ABS_PATH);
+
+    if(!model2.init()) return -1;
+
+    ModelTechnique m2Tech("Shaders/model.vert", 
+                          "Shaders/model.frag");
+    m2Tech.setHandleMaterials(model2.mMaterials)
+         .setHandleWorldViewProj();
 
     Timer& timer = engine.getTimer();
     Camera& camera = engine.getCamera();
@@ -66,18 +69,31 @@ int main()
     while(engine.windowIsOpen())
     {  
         float dt = timer.tick();
-    
-        glm::mat4 viewProj = proj * view;
-        
-        skTech.setUniformWorldViewProj(viewProj);
 
+        glm::mat4 viewProj = proj * view;
+       
         engine.pollEvents();
         engine.handleCameraMovement(dt);
  
         glClearColor(0.0f,0.0f,0.3f,1.0f);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+        mTech.use();
+        mTech.setUniformWorldViewProj(viewProj);
+        model.draw(mTech);
+  
+        m2Tech.use();
+        m2Tech.setUniformWorldViewProj(viewProj);
+        model2.draw(m2Tech);
+       
+        skTech.use();
+        skTech.setUniformWorldViewProj(viewProj);
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
+
+        qTech.use();
+        qTech.setUniformWorldViewProj(viewProj);
+        q.draw(qTech);
 
         engine.swapBuffers();
     }

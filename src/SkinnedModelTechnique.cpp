@@ -7,7 +7,15 @@ SkinnedModelTechnique::SkinnedModelTechnique(const Shader& shader): ModelTechniq
 
 SkinnedModelTechnique::SkinnedModelTechnique(const Shader& shader, 
                                             const std::string& vertexShaderPath, 
-                                            const std::string& fragmentShaderPath): ModelTechnique(shader, vertexShaderPath, fragmentShaderPath)
+                                            const std::string& fragmentShaderPath,
+                                            bool makeAbsPaths /* = true */): ModelTechnique(shader, vertexShaderPath, fragmentShaderPath, makeAbsPaths)
+{
+
+}
+
+SkinnedModelTechnique::SkinnedModelTechnique(const std::string& vertexShaderPath,
+                                             const std::string& fragmentShaderPath,
+                                             bool makeAbsPaths /* = true */): ModelTechnique(vertexShaderPath, fragmentShaderPath, makeAbsPaths)
 {
 
 }

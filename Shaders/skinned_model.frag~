@@ -10,3 +10,4 @@ void main()
     gl_FragColor = vec4(texture(u_TextureDiffuse[0], v_TexCoords).rgb, 1.0);
 }
 
+

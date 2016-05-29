@@ -38,10 +38,11 @@ std::string FileSystem::getReplacedTexturePathFileName(const std::string& fromFi
 
 std::string FileSystem::getPathString(const std::string& path, const std::string& relativeTexFilePath)
 {
+    LOG("IN PATH STR");
     std::string ret(path);
     if(ret[ret.size() - 1] != '/') ret += '/';
     ret.append(relativeTexFilePath);
-
+    LOG("PSTR:" << ret);
     return ret;
 }
 
@@ -49,7 +50,7 @@ std::string FileSystem::getBinAbsPath()
 {
     char buff[PATH_MAX];
     size_t sz = sizeof(buff)-1;
-
+    LOG("IN BIN ABS PATH");
     #ifdef WINDOWS
         if(!GetModuleFileName(NULL, buff, sz))
         {
@@ -65,21 +66,26 @@ std::string FileSystem::getBinAbsPath()
         }
         buff[len] = '\0';
     #endif
+    LOG("B ABS:" << std::string(buff));
     return std::string(buff);
 }
 
 std::string FileSystem::getAbsPath(const std::string& fileName)
 {
+    LOG("GET ABS P");
     std::string binPath = getPathFromFileName(getBinAbsPath());
     binPath.append("/../");
     binPath.append(fileName);
+    LOG("BIN P:" << binPath);
     return binPath;
 }
 
 std::string FileSystem::getPathFromFileName(const std::string& fileName)
 {
+    LOG("P FROM F:"<< fileName);
     size_t slashPos = fileName.find_last_of("/\\");
     if(slashPos == std::string::npos) return "";
+    LOG( "PFR:" <<  fileName.substr(0,slashPos));
     return fileName.substr(0, slashPos);
 }
 
@@ -97,7 +103,7 @@ char* FileSystem::getFileString(const char* path)
     fseek(file,0, SEEK_END);
     size_t size = ftell(file);
     
-    char* fileString = new char[size];
+    char* fileString = new char[size + 1];
 
     rewind(file);
     size_t result = fread(fileString, sizeof(char), size, file);
@@ -109,6 +115,17 @@ char* FileSystem::getFileString(const char* path)
     }
 
     fclose(file);
-
+    fileString[result - 1] = '\0';
     return fileString;
+}
+
+std::string FileSystem::getStrippedFileName(const char* fileName)
+{
+    std::string fileNameStr(fileName);
+    return getStrippedFileName(fileNameStr);
+}
+
+std::string FileSystem::getStrippedFileName(const std::string& fileName)
+{
+    return fileName.substr(fileName.find_last_of("/\\") + 1);    
 }

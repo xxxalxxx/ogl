@@ -1,26 +1,30 @@
 #include "SkinnedModel.h" 
-    
+#include "Utils.h"  
 SkinnedModel::SkinnedModel(
         const std::string& fileName, 
-        const std::string& texturesDir,
-        int aiProcessArgs /* = 0 */, 
-        bool gamma /* = false */
-        ): SkinnedModel(fileName, texturesDir.c_str(), aiProcessArgs, gamma)
+        const std::string& texturesDir,        
+        unsigned int modelFlags /* = 0 */,
+        int aiProcessArgs /* = aiProcess_Triangulate  
+                        | aiProcess_FlipUVs 
+                        | aiProcess_CalcTangentSpace */
+        ): SkinnedModel(fileName, texturesDir.c_str(), modelFlags, aiProcessArgs)
 {   
 }
 
 SkinnedModel::SkinnedModel(
         const std::string& fileName, 
-        const char* texturesDir /* = NULL */,
-        int aiProcessArgs /* = 0 */, 
-        bool gamma /* = false */
-        ): Model(fileName, texturesDir, aiProcessArgs, gamma),mNumBones(0), mScene(NULL) 
+        const char* texturesDir /* = NULL */,        
+        unsigned int modelFlags /* = 0 */,
+        int aiProcessArgs  /* = aiProcess_Triangulate  
+                        | aiProcess_FlipUVs 
+                        | aiProcess_CalcTangentSpace */
+        ): Model(fileName, texturesDir, modelFlags, aiProcessArgs), mNumBones(0), mScene(NULL)
 {   
 }
+
 
 SkinnedModel::~SkinnedModel()
 {
-    LOG("DESTR");
     if(mAnimNodeRoot)
     {
         deleteAnimNodes(mAnimNodeRoot);
@@ -31,13 +35,13 @@ SkinnedModel::~SkinnedModel()
 
 bool SkinnedModel::init()
 {
-    mScene = importer.ReadFile(
-            mFileName,
-            mAiProcessArgs ? mAiProcessArgs :
-              aiProcess_Triangulate 
-           // | aiProcess_FlipUVs 
-            | aiProcess_CalcTangentSpace
-            );
+    LOG("args" << mAiProcessArgs);
+    if(mAiProcessArgs & aiProcess_FlipUVs)
+    {
+        LOG("FLIP");
+    }
+  //  exit(1);
+    mScene = importer.ReadFile(mFileName, mAiProcessArgs);
 
     if(!mScene || mScene->mFlags == AI_SCENE_FLAGS_INCOMPLETE || !mScene->mRootNode) // if is Not Zero
     {
@@ -60,7 +64,6 @@ bool SkinnedModel::init()
 
     mModelSpaceTransform = mScene->mRootNode->mTransformation;
     mModelSpaceTransform.Inverse();
-
 
     for(size_t i=0;i<mScene->mNumAnimations;++i)
     {
@@ -94,6 +97,7 @@ bool SkinnedModel::init()
         aiNode* n = s.top();
         s.pop();
 
+        
         for(size_t i=0;i<n->mNumMeshes;++i)
         {
             aiMesh* mesh = mScene->mMeshes[n->mMeshes[i]];
@@ -107,8 +111,9 @@ bool SkinnedModel::init()
             s.push(n->mChildren[i]);
         }    
     }
+
     createAnimNode(mScene, mScene->mRootNode, NULL, animNodeChecklist);
-    
+
     initBuffers(vertices, indices, bones);
     
     return true;
@@ -147,7 +152,6 @@ void SkinnedModel::processMeshBones(const aiScene* scene, aiNode* node, aiMesh* 
             if(key) //node where name = bone name found
             {
                 animNodeChecklist[key] = boneIndex;
-     //           LOG("KEY FOUND: " << key->mName.C_Str() );
                 
                 if(key != node)
                 for(key = key->mParent;key && (key != node || key != node->mParent); key = key->mParent)
@@ -315,13 +319,10 @@ void SkinnedModel::draw(SkinnedModelTechnique& tech)
 void SkinnedModel::initBuffers(std::vector<Vertex>& vertices,  std::vector<GLuint>& indices,  std::vector<Bone>& bones) 
 {
     glGenVertexArrays(1, &mVAO);
-   
     glBindVertexArray(mVAO);
-
     initVertices(vertices);
     initIndices(indices);
     initBones(bones);
-
     glBindVertexArray(0); 
 }
 

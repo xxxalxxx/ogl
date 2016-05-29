@@ -19,6 +19,7 @@ public:
     bool init(const std::string& vertexShaderPath, const std::string& fragmentShaderPath);
     bool init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPath);
     void use();
+    void stop();
     GLuint getProgram() const;
     
 private:
@@ -30,6 +31,11 @@ private:
 inline void Shader::use()
 {
     glUseProgram(mProgram);
+}
+
+inline void Shader::stop()
+{
+    glUseProgram(0);
 }
 
 inline GLuint Shader::getProgram() const

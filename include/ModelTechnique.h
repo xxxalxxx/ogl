@@ -22,9 +22,16 @@ class ModelTechnique : public Technique
 {
 public:
     ModelTechnique(const Shader& shader);
+    
     ModelTechnique(const Shader& shader,
-                    const std::string& vertexShaderPath,
-                    const std::string& fragmentShaderPath);
+                   const std::string& vertexShaderPath,
+                   const std::string& fragmentShaderPath,
+                   bool makeAbsPaths = true);
+
+    ModelTechnique(const std::string& vertexShaderPath,
+                   const std::string& fragmentShaderPath,
+                   bool makeAbsPaths = true);
+
     virtual ~ModelTechnique();
     ModelTechnique& setUniformSampler(size_t materialIndex, GLuint materialHandlesIndex);
     ModelTechnique& setHandleMaterials(std::vector<std::vector<Texture> >& materials);

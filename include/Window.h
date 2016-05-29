@@ -6,7 +6,7 @@
 
 #define INITIAL_WINDOW_WIDTH 800
 #define INITIAL_WINDOW_HEIGHT 600
-
+#include "Utils.h"
 class Window
 {
 public:

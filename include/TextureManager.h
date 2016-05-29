@@ -9,9 +9,10 @@
 
 #include <GL/glew.h> 
 
-#include <IL/il.h>
 #include "Utils.h"
 #include "FileSystem.h"
+
+#include "stb/stb_image.h"
 
 class TextureManager
 {
@@ -25,19 +26,13 @@ public:
 
     void unload();
 
-    enum TexFlags 
-    {
-        hasGamma = 1,
-        stripFileNamePath = 2
-    };
-
 private:
 
     TextureManager();
     ~TextureManager();
     TextureManager(const TextureManager& other);  
     TextureManager& operator=(TextureManager& other);
-
+    // <path, handle>
     typedef std::pair<std::string, GLuint> tex_pair_t;
     typedef std::unordered_map<std::string, GLuint> tex_container_t;
     typedef tex_container_t::iterator tex_iter_t;
