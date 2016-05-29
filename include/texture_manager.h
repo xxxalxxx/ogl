@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include <GL/glew.h> 
-#include "stb/stb_image.h"
+
 
 #include "utils.h"
 #include "file_system.h"

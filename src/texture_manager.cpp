@@ -1,5 +1,7 @@
 #include "texture_manager.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb/stb_image.h"
 TextureManager::TextureManager(): mFileSystem(FileSystem::getInstance())
 {
 }

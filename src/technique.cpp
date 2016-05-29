@@ -130,6 +130,12 @@ Technique& Technique::setUniformMatrix(GLuint handle, glm::mat4& m)
     return *this;
 }
 
+Technique& Technique::setUniformVector(GLuint handle, const glm::vec3& v)
+{
+    glUniform3fv(handle, 1, glm::value_ptr(v));
+    return *this;
+}
+
 Technique& Technique::setUniformMatrix(GLuint handle, aiMatrix4x4& m)
 {
     glUniformMatrix4fv(handle, 1, GL_FALSE, &m.a1);
@@ -144,6 +150,12 @@ Technique& Technique::setUniformSampler(int activeTexIndex)
 Technique& Technique::setUniformInt(GLuint handle, int num)
 {
     glUniform1i(handle, num);
+    return *this;
+}
+
+Technique& Technique::setUniformFloat(GLuint handle, float num)
+{
+    glUniform1f(handle, num);
     return *this;
 }
 
@@ -187,5 +199,134 @@ Technique& Technique::setUniformProj(aiMatrix4x4& proj)
     return setUniformMatrix(mUniforms.proj, proj);
 }
 
+Technique& Technique::setHandleDirectionalLight()
+{
+    mDirLightTech.handleDirection = getUniformHandle("u_DirLight.direction");
 
+    mDirLightTech.handleAmbient  = getUniformHandle("u_DirLight.ambient");
+    mDirLightTech.handleSpecular = getUniformHandle("u_DirLight.specular");
+    mDirLightTech.handleDiffuse  = getUniformHandle("u_DirLight.diffuse");
+
+    return *this;
+}
+
+Technique& Technique::setHandleSpotLights(size_t numLights)
+{
+    mSpotLightsTechs.clear();
+
+    for(size_t i=0;i<numLights;++i)
+    {
+        std::string name("u_SpotLights[" + std::to_string(i) + "].");
+
+        mSpotLightsTechs.push_back(SpotLightTechnique());
+        SpotLightTechnique& spot = mSpotLightsTechs.back();
+
+        spot.handlePosition  = getUniformHandle( name + "position");
+        spot.handleDirection = getUniformHandle( name + "direction");
+
+        spot.handleCutoff      = getUniformHandle(name + "cutoff");
+        spot.handleCutoffStart = getUniformHandle(name + "cutoffStart");       
+        spot.handleExponent    = getUniformHandle(name + "exponent");
+
+        spot.handleA0 = getUniformHandle(name + "a0");
+        spot.handleA1 = getUniformHandle(name + "a1");
+        spot.handleA2 = getUniformHandle(name + "a2");
+
+        spot.handleAmbient  = getUniformHandle(name + "ambient");
+        spot.handleSpecular = getUniformHandle(name + "specular");
+        spot.handleDiffuse  = getUniformHandle(name + "diffuse");
+    }
+
+    return *this;
+}
+
+Technique& Technique::setHandlePointLights(size_t numLights)
+{
+    mPointLightTechs.clear();
+
+    for(size_t i=0;i<numLights;++i)
+    {
+        std::string name("u_PointLights[" + std::to_string(i) + "].");
+
+        mPointLightTechs.push_back(PointLightTechnique());
+        PointLightTechnique& point = mPointLightTechs.back();
+
+        point.handlePosition = getUniformHandle( name + "position");
+
+        point.handleA0 = getUniformHandle(name + "a0");
+        point.handleA1 = getUniformHandle(name + "a1");
+        point.handleA2 = getUniformHandle(name + "a2");
+
+        point.handleAmbient  = getUniformHandle(name + "ambient");
+        point.handleSpecular = getUniformHandle(name + "specular");
+        point.handleDiffuse  = getUniformHandle(name + "diffuse");
+ 
+    }
+
+    return *this;
+
+}
+
+Technique& Technique::setUniformDirectionalLight(const DirectionalLight& dirLight)
+{
+    setUniformVector(mDirLightTech.handleDirection, dirLight.direction);
+    setUniformVector(mDirLightTech.handleAmbient, dirLight.ambient);
+    setUniformVector(mDirLightTech.handleSpecular, dirLight.specular);
+    setUniformVector(mDirLightTech.handleDiffuse, dirLight.diffuse);
+
+    return *this;
+}
+
+Technique& Technique::setUniformSpotLights(const std::vector<SpotLight>& spotLights)
+{
+    size_t len = spotLights.size() < mSpotLightsTechs.size()
+               ? spotLights.size() : mSpotLightsTechs.size();
+
+    for(size_t i=0;i<len;++i)
+    {
+        const SpotLight& spot = spotLights[i];
+        SpotLightTechnique& spotTech = mSpotLightsTechs[i];
+
+        setUniformVector(spotTech.handleDirection, spot.direction);
+        setUniformVector(spotTech.handlePosition, spot.position);
+   
+        setUniformFloat(spotTech.handleCutoff, spot.cutoff);
+        setUniformFloat(spotTech.handleCutoffStart, spot.cutoffStart);
+        setUniformFloat(spotTech.handleExponent, spot.exponent);
+
+        setUniformFloat(spotTech.handleA0, spot.a0);
+        setUniformFloat(spotTech.handleA1, spot.a1);
+        setUniformFloat(spotTech.handleA2, spot.a2);
+
+        setUniformVector(spotTech.handleAmbient, spot.ambient);
+        setUniformVector(spotTech.handleSpecular, spot.ambient);
+        setUniformVector(spotTech.handleDiffuse, spot.diffuse);
+    }
+
+    return *this;
+}
+
+Technique& Technique::setUniformPointLights(const std::vector<PointLight>& pointLights)
+{
+    size_t len = pointLights.size() < mPointLightTechs.size()
+               ? pointLights.size() : mPointLightTechs.size();
+
+    for(size_t i=0;i<len;++i)
+    {
+        const PointLight& point = pointLights[i];
+        PointLightTechnique& pointTech = mPointLightTechs[i];
+
+        setUniformVector(pointTech.handlePosition, point.position);
+   
+        setUniformFloat(pointTech.handleA0, point.a0);
+        setUniformFloat(pointTech.handleA1, point.a1);
+        setUniformFloat(pointTech.handleA2, point.a2);
+
+        setUniformVector(pointTech.handleAmbient, point.ambient);
+        setUniformVector(pointTech.handleSpecular, point.ambient);
+        setUniformVector(pointTech.handleDiffuse, point.diffuse);
+    }
+
+    return *this;
+}
 

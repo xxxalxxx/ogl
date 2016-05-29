@@ -1,15 +1,14 @@
-#include "light_manager.h"
+#include "light.h"
 
 PointLight::PointLight(): a2(0.032f), a1(0.09f), a0(1.0f)
 {
 
 }
 
-SpotLight::SpotLight(): cutoff(M_PI_4), cutoffStart(0.66f * M_PI_4), exponent(1.0f)
+SpotLight::SpotLight(): cutoff(M_PI_4), cutoffStart(0.66f * M_PI_4)
 {
 
 }
-
 
 
 void PointLight::setAttenuation(float newA2, float newA1, float newA0)
