@@ -108,6 +108,12 @@ Technique& Technique::setHandleProj()
     return *this;
 }
 
+Technique& Technique::setHandleViewPos()
+{
+    mUniforms.viewPos = getUniformHandle("u_ViewPos");
+    return *this;
+}
+
 Technique& Technique::setHandleSampler()
 {
     mUniforms.sampler = getUniformHandle("u_Sampler");
@@ -199,6 +205,11 @@ Technique& Technique::setUniformProj(aiMatrix4x4& proj)
     return setUniformMatrix(mUniforms.proj, proj);
 }
 
+Technique& Technique::setUniformViewPos(const glm::vec3& vp)
+{
+    return setUniformVector(mUniforms.viewPos, vp);
+}
+
 Technique& Technique::setHandleDirectionalLight()
 {
     mDirLightTech.handleDirection = getUniformHandle("u_DirLight.direction");
@@ -277,6 +288,14 @@ Technique& Technique::setUniformDirectionalLight(const DirectionalLight& dirLigh
     return *this;
 }
 
+Technique& Technique::setHandleLights(bool setHandleDirLight, size_t numSpotLights, size_t numPointLights)
+{
+    if(setHandleDirLight) setHandleDirectionalLight();
+    if(numSpotLights) setHandleSpotLights(numSpotLights);
+    if(numPointLights) setHandlePointLights(numPointLights);
+
+    return *this;
+}
 Technique& Technique::setUniformSpotLights(const std::vector<SpotLight>& spotLights)
 {
     size_t len = spotLights.size() < mSpotLightsTechs.size()
@@ -329,4 +348,15 @@ Technique& Technique::setUniformPointLights(const std::vector<PointLight>& point
 
     return *this;
 }
+
+Technique& Technique::setUniformLights(DirectionalLight* dirLight,
+                                        std::vector<SpotLight>* spotLights,
+                                        std::vector<PointLight>* pointLights)
+{
+    if(dirLight) setUniformDirectionalLight(*dirLight);
+    if(spotLights) setUniformSpotLights(*spotLights);
+    if(pointLights) setUniformPointLights(*pointLights);
+    return *this;
+}
+
 

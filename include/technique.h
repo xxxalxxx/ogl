@@ -41,11 +41,13 @@ public:
     Technique& setHandleView();
     Technique& setHandleProj();
     Technique& setHandleWorldViewProj();
+    Technique& setHandleViewPos();
     Technique& setHandleSampler();
     
     Technique& setHandleDirectionalLight();
     Technique& setHandleSpotLights(size_t numLights);
     Technique& setHandlePointLights(size_t numLights);
+    Technique& setHandleLights(bool setHandleDirLight, size_t numSpotLights, size_t numPointLights);
 
     Technique& setUniformWorldViewProj(glm::mat4& worldViewProj);
     Technique& setUniformWorldViewProj(aiMatrix4x4& worldViewProj);
@@ -59,11 +61,18 @@ public:
     Technique& setUniformProj(glm::mat4& proj);
     Technique& setUniformProj(aiMatrix4x4& proj);
 
+    Technique& setUniformViewPos(const glm::vec3& vp);
+
     Technique& setUniformSampler(int activeTexIndex);
     
     Technique& setUniformDirectionalLight(const DirectionalLight& dirLight);
     Technique& setUniformSpotLights(const std::vector<SpotLight>& spotLights);
     Technique& setUniformPointLights(const std::vector<PointLight>& pointLights);
+
+    Technique& setUniformLights(DirectionalLight* dirLight,
+                                std::vector<SpotLight>* spotLights,
+                                std::vector<PointLight>* pointLights);
+
 protected:
     Technique& setUniformMatrix(GLuint handle, glm::mat4& m);
     Technique& setUniformMatrix(GLuint handle, aiMatrix4x4& m);
@@ -75,7 +84,7 @@ protected:
     GLuint getUniformHandle(const std::string& handleName); 
 
     
-    struct Uniforms {GLuint program, worldViewProj, world, view, proj, sampler;} mUniforms;
+    struct Uniforms {GLuint program, worldViewProj, world, view, proj, viewPos, sampler;} mUniforms;
     DirectionalLightTechnique mDirLightTech;
     std::vector<PointLightTechnique> mPointLightTechs;
     std::vector<SpotLightTechnique> mSpotLightsTechs;

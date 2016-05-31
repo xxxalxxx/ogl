@@ -29,26 +29,31 @@
 #define ModelFlag_STRIP_TEXTURE_PATH 2
 #define ModelFlag_USE_ABS_PATH 4
 
+#define DEFAULT_AIPROCESS_ARGS (aiProcess_Triangulate | \
+                                aiProcess_GenSmoothNormals | \
+                                aiProcess_ImproveCacheLocality | \
+                                aiProcess_JoinIdenticalVertices | \
+                                aiProcess_SortByPType | \
+                                aiProcess_FindDegenerates | \
+                                aiProcess_FindInvalidData | \
+                                aiProcess_FlipUVs | \
+                                aiProcess_CalcTangentSpace | \
+                                aiProcess_OptimizeMeshes | \
+                                aiProcess_OptimizeGraph)
+
 class Model 
 {
 public:
     Model(const std::string& fileName, 
           const std::string& texturesDir,
           unsigned int modelFlags = 0,
-          int aiProcessArgs = aiProcess_Triangulate  
-                                | aiProcess_FlipUVs 
-                                | aiProcess_CalcTangentSpace
-
-         );
+          int aiProcessArgs = DEFAULT_AIPROCESS_ARGS);
 
     Model(
         const std::string& fileName, 
         const char* texturesDir = NULL,          
         unsigned int modelFlags = 0,
-        int aiProcessArgs = aiProcess_Triangulate  
-                                | aiProcess_FlipUVs 
-                                | aiProcess_CalcTangentSpace
-        );
+        int aiProcessArgs = DEFAULT_AIPROCESS_ARGS);
 
     virtual ~Model();
 

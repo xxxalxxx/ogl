@@ -37,7 +37,10 @@ public:
     void setAspect(float aspect);
 
     glm::mat4& getProj();
-    glm::mat4& getView(); 
+    glm::mat4& getView();
+
+    glm::vec3& getEye();
+    
     float getFOV();
 
     void moveStraight(float direction, float dt);
@@ -83,6 +86,11 @@ inline glm::mat4& Camera::getProj()
 inline glm::mat4& Camera::getView()
 {
     return mView;
+}
+
+inline glm::vec3& Camera::getEye()
+{
+    return mEye;
 }
 
 inline void Camera::setAspect(float aspect)

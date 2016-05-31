@@ -36,17 +36,13 @@ public:
             const std::string& fileName, 
             const std::string& texturesDir,
             unsigned int modelFlags = 0,
-            int aiProcessArgs = aiProcess_Triangulate  
-                                | aiProcess_FlipUVs 
-                                | aiProcess_CalcTangentSpace);
+            int aiProcessArgs = DEFAULT_AIPROCESS_ARGS);
 
     SkinnedModel(
             const std::string& fileName, 
             const char* texturesDir = NULL, 
             unsigned int modelFlags = 0,
-            int aiProcessArgs = aiProcess_Triangulate  
-                                | aiProcess_FlipUVs 
-                                | aiProcess_CalcTangentSpace);
+            int aiProcessArgs = DEFAULT_AIPROCESS_ARGS);
 
     ~SkinnedModel();
 
