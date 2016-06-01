@@ -54,7 +54,7 @@ bool Shader::init(const GLchar* vertexShaderPath, const GLchar* fragmentShaderPa
 
     if(status == GL_FALSE)
     {
-        logCompileError(fragmentShaderHandle, "Fragment Shader::");
+        logCompileError(fragmentShaderHandle, fragmentShaderPath );
         result = false;
     }
 

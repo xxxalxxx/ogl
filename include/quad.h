@@ -17,14 +17,16 @@ public:
     ~Quad();
 
     void init(const char* texturePath);
-      
+    void initBuffers();
+
     void update(float dt);
+
+    void draw();
     void draw(Technique& Technique);
 
     void unload();
 private:
 
-    void initBuffers();
     void initTextures(const char* texturePath);
     
     GLuint mTexture;

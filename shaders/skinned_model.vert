@@ -26,11 +26,12 @@ void main()
     boneTransform += u_Bones[a_BoneIndices.z] * a_Weights.z;  
     boneTransform += u_Bones[a_BoneIndices.w] * a_Weights.w;
 
-    vec4 pos = boneTransform * vec4(a_Position, 1.0);
-    v_Position = vec3(u_World * pos);
-    v_Normal = vec3(u_World * vec4(a_Normal, 0.0));
+    vec4 pos = vec4(a_Position, 1.0);
+    mat4 boneWorld = u_World * boneTransform;
+    v_Position = vec3(boneWorld * pos);
+    v_Normal = vec3(boneWorld * vec4(a_Normal, 0.0));
     v_TexCoord = a_TexCoord;
 
-    gl_Position = u_WVP * pos;
+    gl_Position = u_WVP * boneTransform * pos;
 
 }

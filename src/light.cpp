@@ -23,6 +23,13 @@ void PointLight::setRadius(float radius)
     setAttenuation(newQuadratic, 0.0f, 1.0f);
 }
 
+float PointLight::getRadius()
+{
+    float maxColor = fmax(fmax(color.x, color.y), color.z);
+    float c = constant - 256 * maxColor;
+    return (-linear + sqrtf(linear*linear - 4 * quadratic * c))/(2.0f*quadratic);
+}
+
 SpotLight::SpotLight(): cutoff(M_PI_4), cutoffStart(0.66f * M_PI_4)
 {
 

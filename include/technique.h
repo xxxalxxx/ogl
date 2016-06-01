@@ -45,6 +45,9 @@ public:
     Technique& setHandleSampler();
     
     Technique& setHandleDirectionalLight();
+    Technique& setHandlePointLight();
+    Technique& setHandleSpotLight();
+
     Technique& setHandleSpotLights(size_t numLights);
     Technique& setHandlePointLights(size_t numLights);
     Technique& setHandleLights(bool setHandleDirLight, size_t numSpotLights, size_t numPointLights);
@@ -66,6 +69,9 @@ public:
     Technique& setUniformSampler(int activeTexIndex);
     
     Technique& setUniformDirectionalLight(const DirectionalLight& dirLight);
+    Technique& setUniformPointLight(const PointLight& light);
+    Technique& setUniformSpotLight(const SpotLight& light);
+
     Technique& setUniformSpotLights(const std::vector<SpotLight>& spotLights);
     Technique& setUniformPointLights(const std::vector<PointLight>& pointLights);
 
@@ -88,6 +94,8 @@ protected:
     
     struct Uniforms {GLuint program, worldViewProj, world, view, proj, viewPos, sampler;} mUniforms;
     DirectionalLightTechnique mDirLightTech;
+    PointLightTechnique mPointLightTech;
+    SpotLightTechnique mSpotLightTech;
     std::vector<PointLightTechnique> mPointLightTechs;
     std::vector<SpotLightTechnique> mSpotLightsTechs;
 private:

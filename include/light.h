@@ -30,6 +30,7 @@ struct PointLight : public Light
     PointLight(float radius);
 
     void setRadius(float radius);
+    float getRadius();
     
     void setAttenuation(float newQuadratic, float newLinear, float newConstant);
     glm::vec3 position;
