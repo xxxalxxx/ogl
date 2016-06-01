@@ -76,7 +76,9 @@ public:
 protected:
     Technique& setUniformMatrix(GLuint handle, glm::mat4& m);
     Technique& setUniformMatrix(GLuint handle, aiMatrix4x4& m);
-    Technique& setUniformVector(GLuint handle, const glm::vec3& v);
+    Technique& setUniformVector3(GLuint handle, const glm::vec3& v);
+   // Technique& setUniformVector4(GLuint handle, const glm::vec4& v);
+
     Technique& setUniformInt(GLuint handle, int num);
     Technique& setUniformFloat(GLuint handle, float num);
 

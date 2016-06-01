@@ -136,12 +136,18 @@ Technique& Technique::setUniformMatrix(GLuint handle, glm::mat4& m)
     return *this;
 }
 
-Technique& Technique::setUniformVector(GLuint handle, const glm::vec3& v)
+Technique& Technique::setUniformVector3(GLuint handle, const glm::vec3& v)
 {
     glUniform3fv(handle, 1, glm::value_ptr(v));
     return *this;
 }
-
+/*
+Technique& Technique::setUniformVector4(GLuint handle, const glm::vec4& v)
+{
+    glUniform4fv(handle, 1, glm::value_ptr(v));
+    return *this;
+}
+*/
 Technique& Technique::setUniformMatrix(GLuint handle, aiMatrix4x4& m)
 {
     glUniformMatrix4fv(handle, 1, GL_FALSE, &m.a1);
@@ -207,16 +213,18 @@ Technique& Technique::setUniformProj(aiMatrix4x4& proj)
 
 Technique& Technique::setUniformViewPos(const glm::vec3& vp)
 {
-    return setUniformVector(mUniforms.viewPos, vp);
+    return setUniformVector3(mUniforms.viewPos, vp);
 }
 
 Technique& Technique::setHandleDirectionalLight()
 {
     mDirLightTech.handleDirection = getUniformHandle("u_DirLight.direction");
 
-    mDirLightTech.handleAmbient  = getUniformHandle("u_DirLight.ambient");
-    mDirLightTech.handleSpecular = getUniformHandle("u_DirLight.specular");
-    mDirLightTech.handleDiffuse  = getUniformHandle("u_DirLight.diffuse");
+    mDirLightTech.handleColor = getUniformHandle("u_DirLight.color");
+    mDirLightTech.handleSpecPower = getUniformHandle("u_DirLight.specPower");
+//  mDirLightTech.handleAmbient  = getUniformHandle("u_DirLight.ambient");
+//    mDirLightTech.handleSpecular = getUniformHandle("u_DirLight.specular");
+//    mDirLightTech.handleDiffuse  = getUniformHandle("u_DirLight.diffuse");
 
     return *this;
 }
@@ -239,13 +247,16 @@ Technique& Technique::setHandleSpotLights(size_t numLights)
         spot.handleCutoffStart = getUniformHandle(name + "cutoffStart");       
         spot.handleExponent    = getUniformHandle(name + "exponent");
 
-        spot.handleA0 = getUniformHandle(name + "a0");
-        spot.handleA1 = getUniformHandle(name + "a1");
-        spot.handleA2 = getUniformHandle(name + "a2");
+        spot.handleQuadratic = getUniformHandle(name + "quadradtic");
+        spot.handleLinear = getUniformHandle(name + "linear");
+        spot.handleConstant = getUniformHandle(name + "constant");
 
-        spot.handleAmbient  = getUniformHandle(name + "ambient");
-        spot.handleSpecular = getUniformHandle(name + "specular");
-        spot.handleDiffuse  = getUniformHandle(name + "diffuse");
+        spot.handleColor = getUniformHandle(name + "color");
+        //     spot.handleAmbient  = getUniformHandle(name + "ambient");
+    //    spot.handleSpecular = getUniformHandle(name + "specular");
+    //    spot.handleDiffuse  = getUniformHandle(name + "diffuse");
+
+        
     }
 
     return *this;
@@ -264,13 +275,17 @@ Technique& Technique::setHandlePointLights(size_t numLights)
 
         point.handlePosition = getUniformHandle( name + "position");
 
-        point.handleA0 = getUniformHandle(name + "a0");
-        point.handleA1 = getUniformHandle(name + "a1");
-        point.handleA2 = getUniformHandle(name + "a2");
+        point.handleQuadratic = getUniformHandle(name + "quadradtic");
+        point.handleLinear = getUniformHandle(name + "linear");
+        point.handleConstant = getUniformHandle(name + "constant");
 
+        point.handleColor = getUniformHandle(name + "color");
+
+/*
         point.handleAmbient  = getUniformHandle(name + "ambient");
         point.handleSpecular = getUniformHandle(name + "specular");
         point.handleDiffuse  = getUniformHandle(name + "diffuse");
+*/
  
     }
 
@@ -280,10 +295,12 @@ Technique& Technique::setHandlePointLights(size_t numLights)
 
 Technique& Technique::setUniformDirectionalLight(const DirectionalLight& dirLight)
 {
-    setUniformVector(mDirLightTech.handleDirection, dirLight.direction);
-    setUniformVector(mDirLightTech.handleAmbient, dirLight.ambient);
-    setUniformVector(mDirLightTech.handleSpecular, dirLight.specular);
-    setUniformVector(mDirLightTech.handleDiffuse, dirLight.diffuse);
+    setUniformVector3(mDirLightTech.handleDirection, dirLight.direction);
+
+   // setUniformVector(mDirLightTech.handleAmbient, dirLight.ambient);
+   // setUniformVector(mDirLightTech.handleSpecular, dirLight.specular);
+   // setUniformVector(mDirLightTech.handleDiffuse, dirLight.diffuse);
+    setUniformVector3(mDirLightTech.handleColor, dirLight.color);
 
     return *this;
 }
@@ -306,20 +323,20 @@ Technique& Technique::setUniformSpotLights(const std::vector<SpotLight>& spotLig
         const SpotLight& spot = spotLights[i];
         SpotLightTechnique& spotTech = mSpotLightsTechs[i];
 
-        setUniformVector(spotTech.handleDirection, spot.direction);
-        setUniformVector(spotTech.handlePosition, spot.position);
+        setUniformVector3(spotTech.handleDirection, spot.direction);
+        setUniformVector3(spotTech.handlePosition, spot.position);
    
         setUniformFloat(spotTech.handleCutoff, spot.cutoff);
         setUniformFloat(spotTech.handleCutoffStart, spot.cutoffStart);
         setUniformFloat(spotTech.handleExponent, spot.exponent);
 
-        setUniformFloat(spotTech.handleA0, spot.a0);
-        setUniformFloat(spotTech.handleA1, spot.a1);
-        setUniformFloat(spotTech.handleA2, spot.a2);
+        setUniformFloat(spotTech.handleQuadratic, spot.quadratic);
+        setUniformFloat(spotTech.handleLinear, spot.linear);
+        setUniformFloat(spotTech.handleConstant, spot.constant);
 
-        setUniformVector(spotTech.handleAmbient, spot.ambient);
-        setUniformVector(spotTech.handleSpecular, spot.ambient);
-        setUniformVector(spotTech.handleDiffuse, spot.diffuse);
+        setUniformVector3(spotTech.handleColor, spot.color);
+
+
     }
 
     return *this;
@@ -335,15 +352,17 @@ Technique& Technique::setUniformPointLights(const std::vector<PointLight>& point
         const PointLight& point = pointLights[i];
         PointLightTechnique& pointTech = mPointLightTechs[i];
 
-        setUniformVector(pointTech.handlePosition, point.position);
+        setUniformVector3(pointTech.handlePosition, point.position);
    
-        setUniformFloat(pointTech.handleA0, point.a0);
-        setUniformFloat(pointTech.handleA1, point.a1);
-        setUniformFloat(pointTech.handleA2, point.a2);
+        setUniformFloat(pointTech.handleQuadratic, point.quadratic);
+        setUniformFloat(pointTech.handleLinear, point.linear);
+        setUniformFloat(pointTech.handleConstant, point.constant);
 
-        setUniformVector(pointTech.handleAmbient, point.ambient);
-        setUniformVector(pointTech.handleSpecular, point.ambient);
-        setUniformVector(pointTech.handleDiffuse, point.diffuse);
+
+        setUniformVector3(pointTech.handleColor, point.color);
+
+        setUniformFloat(pointTech.handleSpecPower, point.specPower);
+
     }
 
     return *this;

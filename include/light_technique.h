@@ -6,13 +6,15 @@
 struct LightTechnique
 {
     LightTechnique(){}
-    GLuint handleAmbient, handleSpecular, handleDiffuse;
+   // GLuint handleAmbient, handleSpecular, handleDiffuse;
+    GLuint handleColor;
+    GLuint handleSpecPower;
 };
 
 struct PointLightTechnique : public LightTechnique
 {
     PointLightTechnique(){}
-    GLuint handleA0, handleA1, handleA2;
+    GLuint handleQuadratic, handleLinear, handleConstant;
     GLuint handlePosition;
 };
 

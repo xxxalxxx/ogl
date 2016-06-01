@@ -12,14 +12,12 @@ out vec3 v_Normal;
 out vec3 v_Position;
 out vec2 v_TexCoord;
 
-
-
 void main()
 {
     vec4 pos = vec4(a_Position, 1.0);
 
     v_Position = vec3(u_World * pos);
-    v_Normal = a_Normal;
+    v_Normal = vec3(u_World * vec4(a_Normal, 0.0));
     v_TexCoord = a_TexCoord;
 
     gl_Position = u_WVP * pos;

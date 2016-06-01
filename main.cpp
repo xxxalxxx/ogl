@@ -9,6 +9,7 @@
 #include "skinned_model_technique.h"
 #include "utils.h"
 #include "light.h"
+#include "g_buffer.h"
 #include "glm/glm.hpp"
 #include "glm/gtx/rotate_vector.hpp"
 #include "glm/gtx/string_cast.hpp"
@@ -21,19 +22,24 @@ int main()
     if(!engine.init()) return -1;
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.0f,0.0f,0.3f,1.0f);
+    glClearColor(0.0f,0.0f,0.0f,0.0f);
+
+   // Window& window = engine.getWindow(); 
+  //  GBuffer gBuffer;
+  //  gBuffer.init(window.getWidth(), window.getHeight());
 
     size_t nl = 8;
     float min = 0.0f, max = 1.0f;
     float minPos = 1.0f, maxPos = 10.0f;
-    float minRad = 100.0f, maxRad = 255.0f;
+    float minRad = 50.0f, maxRad = 75.0f;
     
     DirectionalLight dl;
     dl.direction = Utils::getRandVec3(minPos,maxPos);
+ //   dl.color = Utils::getRandVec3(min,max);
     glm::normalize(dl.direction);
 
-   // dl.ambient = Utils::getRandVec3(min, max);
-   // dl.specular = Utils::getRandVec3(min, max);
+ //   dl.ambient = Utils::getRandVec3(min, max);
+  //  dl.specular = Utils::getRandVec3(min, max);
    // dl.diffuse = Utils::getRandVec3(min , max);
     
 
@@ -41,23 +47,18 @@ int main()
     std::vector<PointLight> pl;
     for(size_t i=0;i<nl;++i)
     {
+
         SpotLight spot;
         spot.position = Utils::getRandVec3(minPos, maxPos);
         spot.direction = Utils::getRandVec3(minPos, maxPos);
         glm::normalize(spot.direction);
+        spot.color = Utils::getRandVec3(min, max);
 
-     //   spot.ambient = Utils::getRandVec3(min, max);
-      //  spot.specular = Utils::getRandVec3(min, max);
-      //  spot.diffuse = Utils::getRandVec3(min , max);
+
 
         PointLight point(Utils::randF(minRad, maxRad));
-        LOG(point.a0 << " " << point.a1 << " " << point.a2);
-        point.position = Utils::getRandVec3(minPos, maxPos);
-        
-        point.ambient = Utils::getRandVec3(min, max);
-        point.specular = Utils::getRandVec3(min, max);
-        point.diffuse = Utils::getRandVec3(min , max);
 
+        point.position = Utils::getRandVec3(minPos, maxPos);
 
 
         sl.push_back(spot);
@@ -67,7 +68,9 @@ int main()
 
 
     Technique qTech("shaders/quad.vert", "shaders/quad.frag");
-    qTech.setHandleSampler().setHandleWorldViewProj();
+    qTech.setHandleSampler()
+         .setHandleWorldViewProj();
+
     Quad q;   
     q.init(FileSystem::getInstance().getAbsPath("res/img.jpg").c_str());
     SkinnedModel sk("res/mesh/dwarf/dwarf.x",
@@ -77,12 +80,14 @@ int main()
     if(!sk.init()) return -1;
 
     SkinnedModelTechnique skTech("shaders/skinned_model.vert",
-                                 "shaders/skinned_model.frag");
+                                 "shaders/model.frag");
 
     skTech.setHandleBoneTransforms(sk.mNumBones)
           .setHandleMaterials(sk.mMaterials)
-          .setHandleWorldViewProj();
-
+          .setHandleWorldViewProj()
+         .setHandleWorld()
+         .setHandleViewPos()
+         .setHandleLights(true, nl, nl);
     
     Model model("res/mesh/guard/boblampclean.md5mesh",
                 "res/mesh/guard/",
@@ -95,6 +100,7 @@ int main()
 
     mTech.setHandleMaterials(model.mMaterials)
          .setHandleWorldViewProj()
+         .setHandleWorld()
          .setHandleViewPos()
          .setHandleLights(true, nl, nl);
      
@@ -108,6 +114,7 @@ int main()
                           "shaders/model.frag");
     m2Tech.setHandleMaterials(model2.mMaterials)
          .setHandleWorldViewProj()
+         .setHandleWorld()
          .setHandleViewPos()
          .setHandleLights(true, nl, nl);
 
@@ -115,11 +122,20 @@ int main()
     Camera& camera = engine.getCamera();
     glm::mat4& proj = camera.getProj();
     glm::mat4& view = camera.getView();
+    
+    glm::mat4 world = glm::mat4(1.0f);
+    
+    skTech.use();
+    skTech.setUniformLights(&dl, &sl, &pl)
+          .setUniformWorld(world);
 
     mTech.use();
-    mTech.setUniformLights(&dl, &sl, &pl);
+    mTech.setUniformLights(&dl, &sl, &pl)
+         .setUniformWorld(world);
+
     m2Tech.use();
-    m2Tech.setUniformLights(&dl, &sl, &pl);    
+    m2Tech.setUniformLights(&dl, &sl, &pl)
+          .setUniformWorld(world);    
    // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     float t = 0.0f; 
@@ -133,40 +149,43 @@ int main()
         {
             for(size_t i=0;i<nl;++i)
             {
-              //  sl[i].position =  glm::rotate(sl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
-                LOG(pl[i].a2);
+                sl[i].position =  glm::rotate(sl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
                 pl[i].position = glm::rotate(pl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
+
+             //   LOG( glm::to_string(sl[i].ambient) << " " << glm::to_string(sl[i].diffuse) << " " << glm::to_string(sl[i].specular));
             }
             mTech.use();
             mTech.setUniformPointLights(pl).setUniformSpotLights(sl);
             m2Tech.use();
             m2Tech.setUniformPointLights(pl).setUniformSpotLights(sl);
+            skTech.use();
+            skTech.setUniformPointLights(pl).setUniformSpotLights(sl);
             t = 0.0f;
-            LOG("in f");
         }
 
         glm::mat4 viewProj = proj * view;
-       
+        glm::vec3& eyePos = camera.getEye();
+
         engine.pollEvents();
         engine.handleCameraMovement(dt);
- 
-      //  glClearColor(0.1f,0.1f,0.1f,1.0f);
+
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
-        if(timer.getCurrentTime())
+       // glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
 
         mTech.use();
         mTech.setUniformWorldViewProj(viewProj)
-             .setUniformViewPos(camera.getEye());
+             .setUniformViewPos(eyePos);
         model.draw(mTech);
   
         m2Tech.use();
         m2Tech.setUniformWorldViewProj(viewProj)
-              .setUniformViewPos(camera.getEye());
+              .setUniformViewPos(eyePos);
         model2.draw(m2Tech);
        
         skTech.use();
-        skTech.setUniformWorldViewProj(viewProj);
+        skTech.setUniformWorldViewProj(viewProj)
+              .setUniformViewPos(eyePos);
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
 

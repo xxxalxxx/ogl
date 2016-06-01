@@ -2,7 +2,7 @@
 #define ALM_G_BUFFER_H
 
 #include <vector>
-
+#include <GL/glew.h>
 #include "utils.h"
 
 
@@ -11,11 +11,14 @@ class GBuffer
 public:
     GBuffer();
     virtual ~GBuffer();
-    void init(size_t w, size_t h); 
-    void update(size_t w, size_t h);
+    bool init(size_t w, size_t h); 
+
+    void unload();
+    GLuint mBuffer;
+
 private:
 
-    GLuint mBufferHandle;
+    GLuint mPosition, mNormal, mColor, mDepth;
 
 };
 

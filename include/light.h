@@ -11,7 +11,10 @@
 
 struct Light
 {
-    glm::vec3 ambient, diffuse, specular;
+    Light();
+    glm::vec3 color;
+    float specPower;
+   // glm::vec3 ambient, diffuse, specular;
 
 };
 
@@ -28,9 +31,9 @@ struct PointLight : public Light
 
     void setRadius(float radius);
     
-    void setAttenuation(float newA2, float newA1, float newA0);
+    void setAttenuation(float newQuadratic, float newLinear, float newConstant);
     glm::vec3 position;
-    float a2, a1, a0;
+    float quadratic, linear, constant;
 };
 
 struct SpotLight : public PointLight
