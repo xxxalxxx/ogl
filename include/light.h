@@ -27,7 +27,7 @@ struct DirectionalLight : public Light
 struct PointLight : public Light
 {
     PointLight();
-    PointLight(float radius);
+    PointLight(float radius, const glm::vec3& color);
 
     void setRadius(float radius);
     float getRadius();

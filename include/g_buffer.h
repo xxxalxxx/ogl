@@ -28,12 +28,12 @@ public:
 
     void unload();
     GLuint mBuffer;
-
+    GLuint mPosition, mNormal, mColor, mDiffuse, mSpecular, mDepth, mResult;
 private:
     void enableAdditiveBlending();
     void enableTextures();
 
-    GLuint mPosition, mNormal, mColor, mDiffuse, mSpecular, mDepth;
+
 
 };
 

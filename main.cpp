@@ -27,12 +27,12 @@ int main()
 
     Window& window = engine.getWindow(); 
     GBuffer gBuffer;
-    if(!gBuffer.init(window.getWidth(), window.getHeight())) return false;
+    if(!gBuffer.init(window.getWidth(), window.getHeight())) return -1;
 
-    size_t nl = 8;
+    size_t nl = 15;
     float min = 0.0f, max = 1.0f;
-    float minPos = 1.0f, maxPos = 10.0f;
-    float minRad = 5.0f, maxRad = 175.0f;
+    float minPos = 1.0f, maxPos = 25.0f;
+    float minRad = 10.0f, maxRad = 50.0f;
     
     DirectionalLight dl;
     dl.direction = Utils::getRandVec3(minPos,maxPos);
@@ -43,7 +43,7 @@ int main()
     std::vector<PointLight> pl;
     std::vector<glm::mat4> plScales;
     std::vector<glm::mat4> plWVP;
-    //plWorlds.resize(nl);
+
     for(size_t i=0;i<nl;++i)
     {
 
@@ -55,21 +55,22 @@ int main()
 
         
 
-        PointLight point(Utils::randF(minRad, maxRad));
-
+        PointLight point(Utils::randF(minRad, maxRad),Utils::getRandVec3(min,max) );
         point.position = Utils::getRandVec3(minPos, maxPos);
 
 
         float scale = point.getRadius();
         LOG(scale);
-        glm::mat4 scaleMtx = glm::mat4(1.0f);
-        scaleMtx *= scale;
-        plScales.push_back(scaleMtx);
+        plScales.push_back(glm::mat4());
+        glm::mat4& scaleMtx = plScales.back();
+        glm::vec3 sv = glm::vec3(scale,scale,scale);
+        scaleMtx = glm::scale(scaleMtx, sv);
+
         plWVP.push_back(scaleMtx);
         sl.push_back(spot);
         pl.push_back(point);
     }
-    exit(1);
+
 
     Technique stencilTech("shaders/base.vert", "shaders/base.frag");
     stencilTech.setHandleWorldViewProj().setHandlePointLight();
@@ -78,6 +79,9 @@ int main()
     sTech.setHandleWorldViewProj().setHandlePointLight().setHandleViewPos();
     Sphere s;
     s.init(25, 25, 1.0f);
+
+    Technique q2Tech("shaders/quad.vert", "shaders/deferred_geometry3.frag");
+    q2Tech.setHandleWorldViewProj().setHandleDirectionalLight().setHandleViewPos();
 
     Technique qTech("shaders/quad.vert", "shaders/deferred_geometry2.frag");
     qTech.setHandleWorldViewProj().setHandleDirectionalLight().setHandleViewPos();
@@ -130,6 +134,10 @@ int main()
     glm::mat4& view = camera.getView();
     
     glm::mat4 world = glm::mat4(1.0f);
+  
+    q2Tech.use();
+    q2Tech.setUniformWorldViewProj(world)
+        .setUniformDirectionalLight(dl);
 
     qTech.use();
     qTech.setUniformWorldViewProj(world)
@@ -144,7 +152,8 @@ int main()
     m2Tech.use();
     m2Tech.setUniformWorld(world);    
     
-   
+    LOG(window.getWidth() << " " << window.getHeight());
+
    // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 
     float t = 0.0f; 
@@ -166,22 +175,14 @@ int main()
             for(size_t i=0;i<nl;++i)
             {
                 sl[i].position =  glm::rotate(sl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
-                pl[i].position = glm::rotate(pl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
+                pl[i].position = glm::rotate(pl[i].position,Utils::randF(min,max) *  dt, glm::vec3(0.0f,1.0f,0.0f));
                 glm::mat4 translate = glm::translate(pl[i].position);
-
-                plWVP[i] = viewProj *  plScales[i] * translate;
-
+                plWVP[i] = viewProj *  translate;
+             //   LOG( glm::to_string(plWVP[i]) << " OTHER MTX " << glm::to_string(viewProj * translate) );
             }
-          /*  mTech.use();
-            mTech.setUniformPointLights(pl).setUniformSpotLights(sl);
-            m2Tech.use();
-            m2Tech.setUniformPointLights(pl).setUniformSpotLights(sl);
-            skTech.use();
-            skTech.setUniformPointLights(pl).setUniformSpotLights(sl);*/
+
             t = 0.0f;
         }
-
-      //  glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 
       //  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.mBuffer);
 
@@ -193,8 +194,26 @@ int main()
                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     */
-        gBuffer.startGeometryPass1();
 
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
+
+        /*
+         * geometry 1
+         *
+         */
+
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
+
+        GLuint attachments[] = { GL_COLOR_ATTACHMENT0, 
+                                 GL_COLOR_ATTACHMENT1, 
+                                 GL_COLOR_ATTACHMENT2,
+                                 GL_COLOR_ATTACHMENT3 };
+
+        glDrawBuffers(3, attachments);
+        
+        glDepthMask(GL_TRUE);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+        glEnable(GL_DEPTH_TEST);
 
 
         mTech.use();
@@ -213,53 +232,173 @@ int main()
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
 
-        sTech.use();
-        sTech.setUniformWorldViewProj(viewProj);
+       // q2Tech.use();
+       // q2Tech.setUniformWorldViewProj(viewProj);
+       // glDrawBuffer(GL_COLOR_ATTACHMENT0);
+       // q.draw();
+            
 
-
-
-        gBuffer.endGeometryPass1();
-
+        /*
+         * stencil pass
+         *
+         */
 
         stencilTech.use();
-        gBuffer.startStencilPass();
 
+        glDepthMask(GL_FALSE); //dont upd depth
+    
+        glEnable(GL_STENCIL_TEST); 
+        glDrawBuffer(GL_NONE); //dont draw lights
+        glEnable(GL_DEPTH_TEST); //depth test for incrementing
+        glDisable(GL_CULL_FACE); //dont cull back or front faces for incrementing
+        
+        glClear(GL_STENCIL_BUFFER_BIT);
+        
+        glStencilFunc(GL_ALWAYS, 0, 0);
+        
+        glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
+        glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
+
+        
         for(size_t i=0;i<pl.size();++i)
         {
-            PointLight& p = pl[i];
-            stencilTech
-                .setUniformWorldViewProj(plWVP[i])
-                .setUniformPointLight(p);
+            glm::mat4 mvp = plWVP[i] * plScales[i];
+            stencilTech.setUniformWorldViewProj(mvp);
             s.draw();
         }
 
-        gBuffer.endStencilPass();
+        /*
+         * light pass
+         *
+         */
 
         sTech.use();
         sTech.setUniformViewPos(eyePos);
-
-        gBuffer.startLightPass();
         
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Position"), 0); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mPosition);
+
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Normal"), 1); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
+         
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Color"), 2); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mColor); 
+
+        GLuint attachments2[] = { GL_COLOR_ATTACHMENT2 };
+
+        glDrawBuffers(1, attachments2);
+
+        glStencilFunc(GL_NOTEQUAL, 0, 0xff);
+        glDisable(GL_DEPTH_TEST);
+
+        //blend all lights drawn
+        glEnable(GL_BLEND); 
+        glBlendEquation(GL_FUNC_ADD);
+        glBlendFunc(GL_ONE, GL_ONE);
+        
+        //when camera inside volume, back faces must not be culled
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_FRONT);
+            
         for(size_t i=0;i<pl.size();++i)
         {
-            PointLight& p = pl[i];
-            sTech
-                .setUniformWorldViewProj(plWVP[i])
-                .setUniformPointLight(p);
+            glm::mat4 mvp = plWVP[i] * plScales[i];
+          //  LOG("COL:" << pl[i].quadratic << " " << pl[i].linear << " " << pl[i].constant );
+            sTech.setUniformWorldViewProj(mvp);
+            sTech.setUniformPointLight(pl[i]);
             s.draw();
         }
 
-        gBuffer.endLightPass();
 
+     
+        /*
+         * geometry 2
+         *
+         */
 
         qTech.use();
         qTech.setUniformViewPos(eyePos);
-        gBuffer.startGeometryPass2();
+        glCullFace(GL_BACK);
+        glDisable(GL_BLEND);
+        glDisable(GL_STENCIL_TEST);
+        
+
+       // glDepthMask(GL_TRUE);
+
+        glDisable(GL_CULL_FACE);
+
+        glDisable(GL_DEPTH_TEST);
+       
+        // glEnable(GL_BLEND);
+       // glBlendEquation(GL_FUNC_ADD);
+       // glBlendFunc(GL_ONE, GL_ONE);
+
+
+        GLuint attachments3[] = {GL_COLOR_ATTACHMENT3};
+        glDrawBuffers(1, attachments3);
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Position"), 0); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mPosition);
+
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Normal"), 1); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
+
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Color"), 2); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mColor);
+
+        glActiveTexture(GL_TEXTURE3);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Result"), 3); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mResult);
+
+        glActiveTexture(GL_TEXTURE3);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Depth"), 4); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth);
         
         q.draw();
+ 
 
-        gBuffer.endGeometryPass2(window.getWidth(), window.getHeight());
+       
+
+
+        /*
+         * end deferred
+         *
+         */
+
+        glDisable(GL_BLEND);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.mBuffer);
+
+        glReadBuffer(GL_COLOR_ATTACHMENT3); 
+        glBlitFramebuffer(0, 0, window.getWidth(), window.getHeight(),
+                          0, 0, window.getWidth(), window.getHeight(),
+                          GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+      //  glDisable(GL_CULL_FACE);
+
+        glDepthMask(GL_TRUE);
+        glEnable(GL_DEPTH_TEST);
+      //  glEnable(GL_CULL_FACE); 
+        /*
+         * after deferred
+         *
+         */
+
+        q2Tech.use();
+        for(size_t i=0;i<nl;++i)
+        {
+            q2Tech.setUniformWorldViewProj(plWVP[i]);
+            q.draw();
+        }
+
+
         engine.swapBuffers();
     }
 
@@ -269,4 +408,20 @@ int main()
 
 
 
+
+/*
+         glBindFramebuffer(GL_READ_FRAMEBUFFER,gBuffer.mBuffer);
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(glGetUniformLocation(q2Tech.mUniforms.program, "u_Position"), 0); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mPosition);
+
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(glGetUniformLocation(q2Tech.mUniforms.program, "u_Normal"), 1); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
+
+        GLuint attachments[] = {GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4};
+
+        glDrawBuffers(2, attachments);
+        q.draw();
+*/
 

@@ -233,16 +233,13 @@ Technique& Technique::setHandlePointLight()
 {
     std::string name("light.");
 
-    mPointLightTechs.push_back(PointLightTechnique());
-    PointLightTechnique& point = mPointLightTechs.back();
+    mPointLightTech.handlePosition = getUniformHandle( name + "position");
 
-    point.handlePosition = getUniformHandle( name + "position");
+    mPointLightTech.handleQuadratic = getUniformHandle(name + "quadratic");
+    mPointLightTech.handleLinear = getUniformHandle(name + "linear");
+    mPointLightTech.handleConstant = getUniformHandle(name + "constant");
 
-    point.handleQuadratic = getUniformHandle(name + "quadradtic");
-    point.handleLinear = getUniformHandle(name + "linear");
-    point.handleConstant = getUniformHandle(name + "constant");
-
-    point.handleColor = getUniformHandle(name + "color");
+    mPointLightTech.handleColor = getUniformHandle(name + "color");
 
     return *this;
 }
@@ -265,7 +262,7 @@ Technique& Technique::setHandleSpotLights(size_t numLights)
         spot.handleCutoffStart = getUniformHandle(name + "cutoffStart");       
         spot.handleExponent    = getUniformHandle(name + "exponent");
 
-        spot.handleQuadratic = getUniformHandle(name + "quadradtic");
+        spot.handleQuadratic = getUniformHandle(name + "quadratic");
         spot.handleLinear = getUniformHandle(name + "linear");
         spot.handleConstant = getUniformHandle(name + "constant");
 
@@ -293,7 +290,7 @@ Technique& Technique::setHandlePointLights(size_t numLights)
 
         point.handlePosition = getUniformHandle( name + "position");
 
-        point.handleQuadratic = getUniformHandle(name + "quadradtic");
+        point.handleQuadratic = getUniformHandle(name + "quadratic");
         point.handleLinear = getUniformHandle(name + "linear");
         point.handleConstant = getUniformHandle(name + "constant");
 
@@ -325,18 +322,15 @@ Technique& Technique::setUniformDirectionalLight(const DirectionalLight& dirLigh
 
 Technique& Technique::setUniformPointLight(const PointLight& point)
 {
-
-    PointLightTechnique& pointTech = mPointLightTech;
-
-    setUniformVector3(pointTech.handlePosition, point.position);
+    setUniformVector3(mPointLightTech.handlePosition, point.position);
    
-    setUniformFloat(pointTech.handleQuadratic, point.quadratic);
-    setUniformFloat(pointTech.handleLinear, point.linear);
-    setUniformFloat(pointTech.handleConstant, point.constant);
+    setUniformFloat(mPointLightTech.handleQuadratic, point.quadratic);
+    setUniformFloat(mPointLightTech.handleLinear, point.linear);
+    setUniformFloat(mPointLightTech.handleConstant, point.constant);
 
-    setUniformVector3(pointTech.handleColor, point.color);
+    setUniformVector3(mPointLightTech.handleColor, point.color);
 
-    setUniformFloat(pointTech.handleSpecPower, point.specPower);
+    setUniformFloat(mPointLightTech.handleSpecPower, point.specPower);
    
     return *this;
 }

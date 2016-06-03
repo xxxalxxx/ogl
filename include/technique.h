@@ -78,7 +78,7 @@ public:
     Technique& setUniformLights(DirectionalLight* dirLight,
                                 std::vector<SpotLight>* spotLights,
                                 std::vector<PointLight>* pointLights);
-
+    struct Uniforms {GLuint program, worldViewProj, world, view, proj, viewPos, sampler;} mUniforms;
 protected:
     Technique& setUniformMatrix(GLuint handle, glm::mat4& m);
     Technique& setUniformMatrix(GLuint handle, aiMatrix4x4& m);
@@ -92,7 +92,7 @@ protected:
     GLuint getUniformHandle(const std::string& handleName); 
 
     
-    struct Uniforms {GLuint program, worldViewProj, world, view, proj, viewPos, sampler;} mUniforms;
+
     DirectionalLightTechnique mDirLightTech;
     PointLightTechnique mPointLightTech;
     SpotLightTechnique mSpotLightTech;
