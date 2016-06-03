@@ -30,8 +30,8 @@ void Quad::initBuffers()
     };
 
     GLuint indices[] = {
-        0, 1, 3, // First Triangle
-        1, 2, 3  // Second Triangle
+        0, 2, 1, // First Triangle
+        0, 3, 2  // Second Triangle
     };
   
     glGenVertexArrays(1, &mVAO);

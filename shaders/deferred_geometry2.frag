@@ -43,14 +43,15 @@ void main()
     vec3 normal = texture(u_Normal, v_TexCoord).rgb;
     vec4 color = texture(u_Color, v_TexCoord);
     vec4 result = texture(u_Result, v_TexCoord);
-    float depth = texture(u_Depth, v_TexCoord).r;
 //  vec3 diff = texture(u_Diffuse, v_TexCoord).rgb;
 //   vec3 spec = texture(u_Specular, v_TexCoord).rgb;
+
+    float depth = texture(u_Depth, v_TexCoord).r;
 
     vec3 viewDir = normalize(u_ViewPos - position);
 
 // vec3 result = calcDirLight(u_DirLight, viewDir, normal, color.rgb, color.a); 
 
-    a_Result = color.rgb;  
+    a_Result = vec3(depth);//color.rgb;  
 }
 

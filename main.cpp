@@ -206,8 +206,7 @@ int main()
 
         GLuint attachments[] = { GL_COLOR_ATTACHMENT0, 
                                  GL_COLOR_ATTACHMENT1, 
-                                 GL_COLOR_ATTACHMENT2,
-                                 GL_COLOR_ATTACHMENT3 };
+                                 GL_COLOR_ATTACHMENT2};
 
         glDrawBuffers(3, attachments);
         
@@ -231,12 +230,6 @@ int main()
               .setUniformViewPos(eyePos);
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
-
-       // q2Tech.use();
-       // q2Tech.setUniformWorldViewProj(viewProj);
-       // glDrawBuffer(GL_COLOR_ATTACHMENT0);
-       // q.draw();
-            
 
         /*
          * stencil pass
@@ -321,15 +314,10 @@ int main()
 
         qTech.use();
         qTech.setUniformViewPos(eyePos);
+        
         glCullFace(GL_BACK);
         glDisable(GL_BLEND);
         glDisable(GL_STENCIL_TEST);
-        
-
-       // glDepthMask(GL_TRUE);
-
-        glDisable(GL_CULL_FACE);
-
         glDisable(GL_DEPTH_TEST);
        
         // glEnable(GL_BLEND);
@@ -356,21 +344,17 @@ int main()
         glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Result"), 3); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mResult);
 
-        glActiveTexture(GL_TEXTURE3);
+        glActiveTexture(GL_TEXTURE4);
         glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Depth"), 4); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth);
         
         q.draw();
- 
-
-       
-
 
         /*
          * end deferred
          *
          */
-
+        glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.mBuffer);
@@ -381,11 +365,11 @@ int main()
                           GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-      //  glDisable(GL_CULL_FACE);
 
         glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);
-      //  glEnable(GL_CULL_FACE); 
+        //back faces still culled
+        
         /*
          * after deferred
          *
@@ -394,6 +378,10 @@ int main()
         q2Tech.use();
         for(size_t i=0;i<nl;++i)
         {
+            glActiveTexture(GL_TEXTURE0);
+            glUniform1i(glGetUniformLocation(q2Tech.mUniforms.program, "u_Depth"), 0); 
+            glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth);
+
             q2Tech.setUniformWorldViewProj(plWVP[i]);
             q.draw();
         }
@@ -405,23 +393,4 @@ int main()
     return 0;
 }
 
-
-
-
-
-/*
-         glBindFramebuffer(GL_READ_FRAMEBUFFER,gBuffer.mBuffer);
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(glGetUniformLocation(q2Tech.mUniforms.program, "u_Position"), 0); 
-        glBindTexture(GL_TEXTURE_2D, gBuffer.mPosition);
-
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(glGetUniformLocation(q2Tech.mUniforms.program, "u_Normal"), 1); 
-        glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
-
-        GLuint attachments[] = {GL_COLOR_ATTACHMENT3, GL_COLOR_ATTACHMENT4};
-
-        glDrawBuffers(2, attachments);
-        q.draw();
-*/
 
