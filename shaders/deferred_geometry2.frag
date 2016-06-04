@@ -10,11 +10,8 @@ struct DirLight
 };
 
 uniform vec3 u_ViewPos;
-uniform sampler2D u_Position;
 uniform sampler2D u_Normal;
 uniform sampler2D u_Color;
-//uniform sampler2D u_Diffuse;
-//uniform sampler2D u_Specular;
 uniform sampler2D u_Result;
 uniform sampler2D u_Depth;
 uniform DirLight u_DirLight;
@@ -39,19 +36,16 @@ vec3 calcDirLight(DirLight light, vec3 viewDir, vec3 normal, vec3 diffColor, flo
 
 void main()
 {    
-    vec3 position = texture(u_Position, v_TexCoord).rgb;
-    vec3 normal = texture(u_Normal, v_TexCoord).rgb;
+    vec2 normal = texture(u_Normal, v_TexCoord).xy;
     vec4 color = texture(u_Color, v_TexCoord);
     vec4 result = texture(u_Result, v_TexCoord);
-//  vec3 diff = texture(u_Diffuse, v_TexCoord).rgb;
-//   vec3 spec = texture(u_Specular, v_TexCoord).rgb;
-
     float depth = texture(u_Depth, v_TexCoord).r;
 
-    vec3 viewDir = normalize(u_ViewPos - position);
 
+ //   vec3 viewDir = normalize(u_ViewPos - position);
 // vec3 result = calcDirLight(u_DirLight, viewDir, normal, color.rgb, color.a); 
 
-    a_Result = vec3(depth);//color.rgb;  
+    a_Result = color.rgb; //vec3(normal.z);  
+
 }
 

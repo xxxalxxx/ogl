@@ -1,9 +1,7 @@
 #version 330 core
-layout (location = 0) out vec3 a_Position;
-layout (location = 1) out vec3 a_Normal;
-layout (location = 2) out vec4 a_Color;
-//layout (location = 3) out vec4 a_Result;
-//layout (location = 3) out float a_Depth;
+layout (location = 0) out vec2 a_Normal;
+layout (location = 1) out vec4 a_Color;
+
 in vec3 v_Position;
 in vec3 v_Normal;
 in vec2 v_TexCoord;
@@ -16,11 +14,8 @@ uniform sampler2D u_TextureSpecular[MAX_SPECULAR_TEX];
 
 void main()
 {    
-    a_Position = v_Position;
-    a_Position.z = gl_FragCoord.z;
-    a_Normal = v_Normal;
+    a_Normal = v_Normal.xy;
     a_Color.rgb = texture(u_TextureDiffuse[0], v_TexCoord).rgb;
-    a_Color.a = texture(u_TextureSpecular[0], v_TexCoord).r; 
-   // a_Result = a_Color;
+    a_Color.a = texture(u_TextureSpecular[0], v_TexCoord).r;     
 }
 

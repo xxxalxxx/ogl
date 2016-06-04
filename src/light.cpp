@@ -23,7 +23,7 @@ void PointLight::setRadius(float radius)
     float r2 = radius * radius;
     float maxColor = fmax(fmax(color.x, color.y), color.z);
 
-    float newQuadratic = (256.0f*maxColor/5.0f - 1.0f)/r2;
+    float newQuadratic = (256.0f*maxColor - 1.0f)/r2;
     setAttenuation(newQuadratic, 0.0f, 1.0f);
    // LOG("RAD:" << radius <<" RE RAD:" << getRadius());
 }
@@ -31,7 +31,7 @@ void PointLight::setRadius(float radius)
 float PointLight::getRadius()
 {
     float maxColor = fmax(fmax(color.x, color.y), color.z);
-    float c = constant - 256.0f/5.0f  * maxColor;
+    float c = constant - 256.0f  * maxColor;
    // LOG("m:"<< maxColor << "c:" << c << "l:" << linear << "q:" << quadratic); 
     return (-linear + sqrtf(linear*linear - 4 * quadratic * c))/(2.0f*quadratic);
 }

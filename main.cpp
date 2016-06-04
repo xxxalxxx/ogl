@@ -32,7 +32,7 @@ int main()
     size_t nl = 15;
     float min = 0.0f, max = 1.0f;
     float minPos = 1.0f, maxPos = 25.0f;
-    float minRad = 10.0f, maxRad = 50.0f;
+    float minRad = 50.0f, maxRad = 150.0f;
     
     DirectionalLight dl;
     dl.direction = Utils::getRandVec3(minPos,maxPos);
@@ -42,6 +42,7 @@ int main()
     std::vector<SpotLight> sl;
     std::vector<PointLight> pl;
     std::vector<glm::mat4> plScales;
+    std::vector<glm::mat4> plWorlds;
     std::vector<glm::mat4> plWVP;
 
     for(size_t i=0;i<nl;++i)
@@ -52,7 +53,6 @@ int main()
         spot.direction = Utils::getRandVec3(minPos, maxPos);
         glm::normalize(spot.direction);
         spot.color = Utils::getRandVec3(min, max);
-
         
 
         PointLight point(Utils::randF(minRad, maxRad),Utils::getRandVec3(min,max) );
@@ -61,7 +61,10 @@ int main()
 
         float scale = point.getRadius();
         LOG(scale);
+
         plScales.push_back(glm::mat4());
+        plWorlds.push_back(glm::mat4(1.0f));
+
         glm::mat4& scaleMtx = plScales.back();
         glm::vec3 sv = glm::vec3(scale,scale,scale);
         scaleMtx = glm::scale(scaleMtx, sv);
@@ -75,8 +78,15 @@ int main()
     Technique stencilTech("shaders/base.vert", "shaders/base.frag");
     stencilTech.setHandleWorldViewProj().setHandlePointLight();
 
-    Technique sTech("shaders/base.vert", "shaders/deferred_light.frag");
-    sTech.setHandleWorldViewProj().setHandlePointLight().setHandleViewPos();
+    Technique sTech("shaders/deferred_light.vert", "shaders/deferred_light.frag");
+    sTech
+        .setHandleWorldViewProj()
+        .setHandlePointLight()
+        .setHandleViewPos()
+        .setHandleView()
+        .setHandleProj()
+        .setHandleWorld();
+
     Sphere s;
     s.init(25, 25, 1.0f);
 
@@ -177,23 +187,13 @@ int main()
                 sl[i].position =  glm::rotate(sl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
                 pl[i].position = glm::rotate(pl[i].position,Utils::randF(min,max) *  dt, glm::vec3(0.0f,1.0f,0.0f));
                 glm::mat4 translate = glm::translate(pl[i].position);
+                plWorlds[i] = translate * plScales[i];
                 plWVP[i] = viewProj *  translate;
              //   LOG( glm::to_string(plWVP[i]) << " OTHER MTX " << glm::to_string(viewProj * translate) );
             }
 
             t = 0.0f;
         }
-
-      //  glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gBuffer.mBuffer);
-
-     /*   glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.mBuffer);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glBlitFramebuffer(0,0,window.getWidth(),window.getHeight(),
-                          0,0,window.getWidth(),window.getHeight(),
-                          GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-    */
 
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT);
 
@@ -205,10 +205,9 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
 
         GLuint attachments[] = { GL_COLOR_ATTACHMENT0, 
-                                 GL_COLOR_ATTACHMENT1, 
-                                 GL_COLOR_ATTACHMENT2};
+                                 GL_COLOR_ATTACHMENT1 };
 
-        glDrawBuffers(3, attachments);
+        glDrawBuffers(2, attachments);
         
         glDepthMask(GL_TRUE);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -267,20 +266,20 @@ int main()
 
         sTech.use();
         sTech.setUniformViewPos(eyePos);
-        
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Position"), 0); 
-        glBindTexture(GL_TEXTURE_2D, gBuffer.mPosition);
 
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Normal"), 1); 
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Normal"), 0); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
          
-        glActiveTexture(GL_TEXTURE2);
-        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Color"), 2); 
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Color"), 1); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mColor); 
+  
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Depth"), 2); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth); 
 
-        GLuint attachments2[] = { GL_COLOR_ATTACHMENT2 };
+        GLuint attachments2[] = { GL_COLOR_ATTACHMENT1 };
 
         glDrawBuffers(1, attachments2);
 
@@ -295,12 +294,16 @@ int main()
         //when camera inside volume, back faces must not be culled
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
-            
+        
+      //  glEnable(GL_DEPTH_TEST);
+      //  glDepthMask(GL_TRUE);
         for(size_t i=0;i<pl.size();++i)
         {
             glm::mat4 mvp = plWVP[i] * plScales[i];
-          //  LOG("COL:" << pl[i].quadratic << " " << pl[i].linear << " " << pl[i].constant );
             sTech.setUniformWorldViewProj(mvp);
+            sTech.setUniformWorld(plWorlds[i]);
+            sTech.setUniformProj(proj);
+            sTech.setUniformView(view);
             sTech.setUniformPointLight(pl[i]);
             s.draw();
         }
@@ -325,27 +328,24 @@ int main()
        // glBlendFunc(GL_ONE, GL_ONE);
 
 
-        GLuint attachments3[] = {GL_COLOR_ATTACHMENT3};
+        GLuint attachments3[] = {GL_COLOR_ATTACHMENT2};
         glDrawBuffers(1, attachments3);
 
-        glActiveTexture(GL_TEXTURE0);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Position"), 0); 
-        glBindTexture(GL_TEXTURE_2D, gBuffer.mPosition);
 
-        glActiveTexture(GL_TEXTURE1);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Normal"), 1); 
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Normal"), 0); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
 
-        glActiveTexture(GL_TEXTURE2);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Color"), 2); 
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Color"), 1); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mColor);
 
-        glActiveTexture(GL_TEXTURE3);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Result"), 3); 
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Result"), 2); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mResult);
 
-        glActiveTexture(GL_TEXTURE4);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Depth"), 4); 
+        glActiveTexture(GL_TEXTURE3);
+        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Depth"), 3); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth);
         
         q.draw();
@@ -359,7 +359,7 @@ int main()
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.mBuffer);
 
-        glReadBuffer(GL_COLOR_ATTACHMENT3); 
+        glReadBuffer(GL_COLOR_ATTACHMENT2); 
         glBlitFramebuffer(0, 0, window.getWidth(), window.getHeight(),
                           0, 0, window.getWidth(), window.getHeight(),
                           GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
@@ -385,8 +385,6 @@ int main()
             q2Tech.setUniformWorldViewProj(plWVP[i]);
             q.draw();
         }
-
-
         engine.swapBuffers();
     }
 
