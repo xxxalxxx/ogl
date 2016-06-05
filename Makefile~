@@ -4,7 +4,7 @@ SRC_DIR := src
 OBJ_DIR := obj
 
 TARGET=$(BIN_DIR)/myengine
-SRCS=main.cpp texture_manager.cpp file_system.cpp window.cpp engine.cpp camera.cpp shader.cpp quad.cpp technique.cpp model_technique.cpp skinned_model_technique.cpp skinned_model.cpp model.cpp anim_node.cpp mesh.cpp light.cpp g_buffer.cpp 
+SRCS=main.cpp texture_manager.cpp file_system.cpp window.cpp engine.cpp camera.cpp shader.cpp quad.cpp technique.cpp model_technique.cpp skinned_model_technique.cpp skinned_model.cpp model.cpp anim_node.cpp mesh.cpp light.cpp g_buffer.cpp sphere.cpp 
 OBJS=$(patsubst %.cpp,$(OBJ_DIR)/%.o, $(SRCS))
 VPATH=include:src
 

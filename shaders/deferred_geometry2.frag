@@ -1,5 +1,5 @@
 #version 330 core
-layout (location = 0) out vec3 a_Result;
+layout (location = 2) out vec4 a_Result;
 
 in vec2 v_TexCoord;
 
@@ -14,6 +14,7 @@ uniform sampler2D u_Normal;
 uniform sampler2D u_Color;
 uniform sampler2D u_Result;
 uniform sampler2D u_Depth;
+uniform sampler2D u_SSAO;
 uniform DirLight u_DirLight;
 
 
@@ -40,12 +41,13 @@ void main()
     vec4 color = texture(u_Color, v_TexCoord);
     vec4 result = texture(u_Result, v_TexCoord);
     float depth = texture(u_Depth, v_TexCoord).r;
+    float ssao = texture(u_SSAO, v_TexCoord).r;
 
-
+    vec3 ambient = 0.3 * ssao * color.rgb;
+    
  //   vec3 viewDir = normalize(u_ViewPos - position);
 // vec3 result = calcDirLight(u_DirLight, viewDir, normal, color.rgb, color.a); 
 
-    a_Result = color.rgb; //vec3(normal.z);  
-
+    gl_FragColor = vec4(vec3(ssao), 1.0); // vec4(ambient + result.rgb, 1.0);
 }
 

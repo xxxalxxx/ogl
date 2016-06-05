@@ -28,7 +28,7 @@ public:
 
     void unload();
     GLuint mBuffer;
-    GLuint mPosition, mNormal, mColor, mDiffuse, mSpecular, mDepth, mResult;
+    GLuint mPosition, mNormal, mColor, mDepth, mResult;
 private:
     void enableAdditiveBlending();
     void enableTextures();

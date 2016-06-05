@@ -14,6 +14,7 @@
 #include "glm/gtx/rotate_vector.hpp"
 #include "glm/gtx/string_cast.hpp"
 #include "sphere.h"
+#include "ssao.h"
 
 int main()
 {
@@ -28,6 +29,9 @@ int main()
     Window& window = engine.getWindow(); 
     GBuffer gBuffer;
     if(!gBuffer.init(window.getWidth(), window.getHeight())) return -1;
+    SSAO ssao;
+    if(!ssao.init(window.getWidth(), window.getHeight())) return -1;
+
 
     size_t nl = 15;
     float min = 0.0f, max = 1.0f;
@@ -73,9 +77,19 @@ int main()
         sl.push_back(spot);
         pl.push_back(point);
     }
+    Technique ssaoTech("shaders/ssao.vert", "shaders/ssao.frag");
+    ssaoTech.setHandleProj().setHandleWorldViewProj();
+    std::vector<GLuint> ssaoKernelHandles = ssao.getUniformSampleHandles(ssaoTech.mUniforms.program);
+    GLuint ssaoNoiseHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Noise");
+    GLuint ssaoDepthHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Depth");
+    GLuint ssaoNormalHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Normal");
+    GLuint ssaoRadiusHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Radius");
 
-
-    Technique stencilTech("shaders/base.vert", "shaders/base.frag");
+    Technique ssaoBlurTech("shaders/quad.vert", "shaders/ssao_blur.frag");
+    ssaoBlurTech.setHandleWorldViewProj();
+    GLuint ssaoBlurSSAOHandle = glGetUniformLocation(ssaoBlurTech.mUniforms.program, "u_SSAO");
+    
+    Technique stencilTech("shaders/ssao.vert", "shaders/base.frag");
     stencilTech.setHandleWorldViewProj().setHandlePointLight();
 
     Technique sTech("shaders/deferred_light.vert", "shaders/deferred_light.frag");
@@ -87,6 +101,11 @@ int main()
         .setHandleProj()
         .setHandleWorld();
 
+    GLuint sTechCamWorldHandle = glGetUniformLocation(sTech.mUniforms.program, "u_CamWorld"); 
+    GLuint sTechDepthHandle = glGetUniformLocation(sTech.mUniforms.program, "u_Depth");
+    GLuint sTechColorHandle = glGetUniformLocation(sTech.mUniforms.program, "u_Color");
+    GLuint sTechNormalHandle = glGetUniformLocation(sTech.mUniforms.program, "u_Normal");
+
     Sphere s;
     s.init(25, 25, 1.0f);
 
@@ -94,7 +113,20 @@ int main()
     q2Tech.setHandleWorldViewProj().setHandleDirectionalLight().setHandleViewPos();
 
     Technique qTech("shaders/quad.vert", "shaders/deferred_geometry2.frag");
-    qTech.setHandleWorldViewProj().setHandleDirectionalLight().setHandleViewPos();
+    qTech
+        .setHandleWorldViewProj()
+        .setHandleDirectionalLight()
+        .setHandleViewPos();
+
+    GLuint qTechDepthHandle = glGetUniformLocation(qTech.mUniforms.program, "u_Depth");
+    GLuint qTechColorHandle = glGetUniformLocation(qTech.mUniforms.program, "u_Color");
+    GLuint qTechNormalHandle = glGetUniformLocation(qTech.mUniforms.program, "u_Normal");
+    GLuint qTechResultHandle = glGetUniformLocation(qTech.mUniforms.program, "u_Result");
+    GLuint qTechSSAOHandle = glGetUniformLocation(qTech.mUniforms.program, "u_SSAO");
+
+
+
+
     Quad q;   
     q.initBuffers();
 
@@ -160,8 +192,16 @@ int main()
     mTech.setUniformWorld(world);
 
     m2Tech.use();
-    m2Tech.setUniformWorld(world);    
-    
+    m2Tech.setUniformWorld(world);
+
+    ssaoTech.use();
+    ssaoTech.setUniformWorldViewProj(world);
+    glUniform1f(ssaoRadiusHandle, 1.0f);
+    ssao.setUniformSampleHandles(ssaoKernelHandles);
+
+    ssaoBlurTech.use();    
+    ssaoBlurTech.setUniformWorldViewProj(world);
+
     LOG(window.getWidth() << " " << window.getHeight());
 
    // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -175,6 +215,7 @@ int main()
 
 
         glm::mat4 viewProj = proj * view;
+        glm::mat3 camWorld = glm::transpose(glm::mat3(view));
         glm::vec3& eyePos = camera.getEye();
 
         engine.pollEvents();
@@ -189,7 +230,6 @@ int main()
                 glm::mat4 translate = glm::translate(pl[i].position);
                 plWorlds[i] = translate * plScales[i];
                 plWVP[i] = viewProj *  translate;
-             //   LOG( glm::to_string(plWVP[i]) << " OTHER MTX " << glm::to_string(viewProj * translate) );
             }
 
             t = 0.0f;
@@ -205,9 +245,10 @@ int main()
         glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
 
         GLuint attachments[] = { GL_COLOR_ATTACHMENT0, 
-                                 GL_COLOR_ATTACHMENT1 };
+                                 GL_COLOR_ATTACHMENT1,
+                                 GL_COLOR_ATTACHMENT2 };
 
-        glDrawBuffers(2, attachments);
+        glDrawBuffers(3, attachments);
         
         glDepthMask(GL_TRUE);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -229,6 +270,56 @@ int main()
               .setUniformViewPos(eyePos);
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
+
+        /*
+         * SSAO pass
+         *
+         */
+
+        glBindFramebuffer(GL_FRAMEBUFFER, ssao.mBuffer);
+        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+        ssaoTech.use();
+        ssaoTech.setUniformProj(proj);
+
+        GLuint attachmentsSSAO[] = { GL_COLOR_ATTACHMENT0 };
+
+        glDrawBuffers(1, attachmentsSSAO);
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(ssaoNormalHandle, 0); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
+         
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(ssaoDepthHandle, 1); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth); 
+  
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(ssaoNoiseHandle, 2); 
+        glBindTexture(GL_TEXTURE_2D, ssao.mNoise); 
+
+
+        q.draw();
+
+
+        ssaoBlurTech.use();
+
+
+        GLuint attachmentsSSAOBlur[] = { GL_COLOR_ATTACHMENT1 };
+
+        glDrawBuffers(1, attachmentsSSAOBlur);
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(ssaoBlurSSAOHandle, 0); 
+        glBindTexture(GL_TEXTURE_2D, ssao.mSSAO);
+
+
+        q.draw();
+
+
+        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
 
         /*
          * stencil pass
@@ -266,20 +357,23 @@ int main()
 
         sTech.use();
         sTech.setUniformViewPos(eyePos);
+        sTech.setUniformProj(proj);
+        sTech.setUniformView(view);
+        glUniformMatrix3fv(sTechCamWorldHandle, 1, GL_FALSE, glm::value_ptr(camWorld));
 
         glActiveTexture(GL_TEXTURE0);
-        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Normal"), 0); 
+        glUniform1i(sTechNormalHandle, 0); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
          
         glActiveTexture(GL_TEXTURE1);
-        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Color"), 1); 
+        glUniform1i(sTechColorHandle, 1); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mColor); 
   
         glActiveTexture(GL_TEXTURE2);
-        glUniform1i(glGetUniformLocation(sTech.mUniforms.program, "u_Depth"), 2); 
+        glUniform1i(sTechDepthHandle, 2); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth); 
 
-        GLuint attachments2[] = { GL_COLOR_ATTACHMENT1 };
+        GLuint attachments2[] = { GL_COLOR_ATTACHMENT2 };
 
         glDrawBuffers(1, attachments2);
 
@@ -295,15 +389,11 @@ int main()
         glEnable(GL_CULL_FACE);
         glCullFace(GL_FRONT);
         
-      //  glEnable(GL_DEPTH_TEST);
-      //  glDepthMask(GL_TRUE);
         for(size_t i=0;i<pl.size();++i)
         {
             glm::mat4 mvp = plWVP[i] * plScales[i];
-            sTech.setUniformWorldViewProj(mvp);
+            sTech.setUniformWorldViewProj(mvp);     
             sTech.setUniformWorld(plWorlds[i]);
-            sTech.setUniformProj(proj);
-            sTech.setUniformView(view);
             sTech.setUniformPointLight(pl[i]);
             s.draw();
         }
@@ -314,6 +404,7 @@ int main()
          * geometry 2
          *
          */
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
         qTech.use();
         qTech.setUniformViewPos(eyePos);
@@ -323,51 +414,45 @@ int main()
         glDisable(GL_STENCIL_TEST);
         glDisable(GL_DEPTH_TEST);
        
-        // glEnable(GL_BLEND);
-       // glBlendEquation(GL_FUNC_ADD);
-       // glBlendFunc(GL_ONE, GL_ONE);
-
-
-        GLuint attachments3[] = {GL_COLOR_ATTACHMENT2};
-        glDrawBuffers(1, attachments3);
-
-
         glActiveTexture(GL_TEXTURE0);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Normal"), 0); 
+        glUniform1i(qTechNormalHandle, 0); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
 
         glActiveTexture(GL_TEXTURE1);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Color"), 1); 
+        glUniform1i(qTechColorHandle, 1); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mColor);
 
         glActiveTexture(GL_TEXTURE2);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Result"), 2); 
+        glUniform1i(qTechResultHandle, 2); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mResult);
 
         glActiveTexture(GL_TEXTURE3);
-        glUniform1i(glGetUniformLocation(qTech.mUniforms.program, "u_Depth"), 3); 
+        glUniform1i(qTechDepthHandle, 3); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth);
         
+        glActiveTexture(GL_TEXTURE4);
+        glUniform1i(qTechSSAOHandle, 4); 
+        glBindTexture(GL_TEXTURE_2D, ssao.mBlurredSSAO);
+     
         q.draw();
 
         /*
          * end deferred
          *
          */
+
         glDepthMask(GL_TRUE);
-        glDisable(GL_BLEND);
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.mBuffer);
 
-        glReadBuffer(GL_COLOR_ATTACHMENT2); 
         glBlitFramebuffer(0, 0, window.getWidth(), window.getHeight(),
                           0, 0, window.getWidth(), window.getHeight(),
-                          GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+                         GL_DEPTH_BUFFER_BIT, GL_NEAREST);
         
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);
+
         //back faces still culled
         
         /*

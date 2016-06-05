@@ -1,11 +1,6 @@
 #version 330 core
 layout (location = 0) out vec3 a_Result;
 
-in vec3 v_LightPosW;
-in mat4 invView;
-in vec4 v_ViewRay;
-in vec3 v_TexCoord;
-
 struct PointLight
 {
     vec3 position;
@@ -16,9 +11,17 @@ struct PointLight
     vec3 color;
 };
 
+
+in vec3 v_LightPosW;
+in vec4 v_ViewRay;
+in vec3 v_TexCoord;
+in vec3 v_ScaleAndTranslateProjs;
+in mat4 v_Proj;
+
+uniform mat4 u_Proj;
 uniform vec3 u_ViewPos;
 uniform PointLight light;
-uniform mat3 u_CameraWorld;
+uniform mat3 u_CamWorld;
 
 uniform sampler2D u_Normal;
 uniform sampler2D u_Color;
@@ -29,7 +32,9 @@ uniform sampler2D u_Depth;
 
 vec3 getPosW(float depth, in vec3 viewRay, in mat3 camWorld, in vec3 viewPos)
 {
-    float viewZ = 2.0 * NEAR * FAR / (FAR + NEAR - (2.0 * depth - 1.0) * (FAR - NEAR));
+    float viewZ = NEAR * FAR / (FAR - depth * (FAR + NEAR));
+//    vec2 projs = vec2(u_Proj[2][2], u_Proj[3][2]);
+ //   float viewZ = projs.y/(2.0 - depth - 1.0 - projs.x);
     vec3 posV = viewRay * viewZ;
     return camWorld * posV + viewPos;
 }
@@ -68,19 +73,10 @@ void main()
    
     vec3 viewRay = v_ViewRay.xyz/v_ViewRay.w;
 
-    mat4 view = inverse(invView);
-    mat3 invV = transpose(mat3(view));
-
-    vec3 position = getPosW(depth, viewRay, invV, u_ViewPos);
+    vec3 position = getPosW(depth, viewRay, u_CamWorld, u_ViewPos);
     vec3 normal = getNormalW(packedNormal);
- 
+
     a_Result = getPointLight(light, color, position, normal, u_ViewPos);
 }
 
 
-/*
-    vec4 p = vec4(texCoord.xy, depth, 1.0);
-    p.xyz = 2.0 * p.xyz - 1.0;
-    p = invVP * p;
-    vec3 position = p.xyz/p.w;
-*/
