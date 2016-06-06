@@ -51,18 +51,22 @@ void SSAO::initKernel()
     size_t numSamples = 32;
     mKernelSamples.clear();
     mKernelSamples.reserve(numSamples);
+
+  std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0);
+  std::default_random_engine generator;
+
     for (GLuint i = 0; i < numSamples; ++i)
-    {
+    { 
         glm::vec3 sample(
-            Utils::randF(-1.0f, 1.0f), 
-            Utils::randF(-1.0f, 1.0f), 
-            Utils::randF( 0.0f, 1.0f)
-        );
+                randomFloats(generator) * 2.0 - 1.0, 
+                randomFloats(generator) * 2.0 - 1.0, 
+                randomFloats(generator));
+
         LOG( "KERNEL:" << glm::to_string(sample));
         sample = glm::normalize(sample);
-       // sample *= randomFloats(generator);
-        GLfloat scale = GLfloat(i) / (float)numSamples;
-        scale = 0.1f + scale * scale * (1.0f - 0.1f);
+        sample *= Utils::randF(0.0f, 1.0f);
+        GLfloat scale = GLfloat(i) / ((float)numSamples);
+        scale = 0.1f + (scale * scale) * (1.0f - 0.1f);
         sample *= scale;
         mKernelSamples.push_back(sample);
     }
@@ -71,15 +75,18 @@ void SSAO::initKernel()
 
 void SSAO::initNoiseTexture()
 {
+    std::uniform_real_distribution<GLfloat> randomFloats(0.0, 1.0);
+    std::default_random_engine generator;
 
     std::vector<glm::vec3> noise;
     noise.reserve(16);
     for (GLuint i = 0; i < 16; i++)
     {
         glm::vec3 noiseVec(
-            Utils::randF(-1.0f, 1.0f), 
-            Utils::randF(-1.0f, 1.0f), 
-            0.0f);
+                randomFloats(generator) * 2.0 - 1.0, 
+                randomFloats(generator) * 2.0 - 1.0, 
+                0.0f);
+
         LOG( "NOISE:" << glm::to_string(noiseVec));
 
         noise.push_back(noiseVec);

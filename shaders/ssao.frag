@@ -2,10 +2,13 @@
 layout (location = 0) out float a_SSAO;
 
 in vec2 v_TexCoord;
-in vec2 v_ViewRay;
+in vec3 v_ViewRay;
 in mat4 v_Proj;
 
 #define KERNEL_SIZE 32
+#define NOISE_SIZE 4
+#define NEAR 0.1
+#define FAR 1000.0
 
 uniform vec3 u_Kernel[KERNEL_SIZE];
 uniform float u_Radius;
@@ -22,16 +25,14 @@ vec3 getNormalW(in vec2 packedNormal)
     return vec3(packedNormal.xy, nz);
 }
 
-
 float getLinearDepth(float depth)
-{   
-    return u_Proj[3][2]/(2.0 * depth - 1.0 - u_Proj[2][2]);
+{
+    return NEAR * FAR / (depth * (FAR - NEAR) - FAR);
 }
-
-const vec2 noiseScale = vec2(800.0, 600.0)/4.0;
 
 void main()
 {
+    vec2 noiseScale = vec2(textureSize(u_Normal, 0))/float(NOISE_SIZE);
     float depth = texture(u_Depth, v_TexCoord).x;
     vec2 packedNormal = texture(u_Normal, v_TexCoord).xy;
     vec3 randVec = texture(u_Noise, v_TexCoord * noiseScale).xyz;
@@ -40,18 +41,16 @@ void main()
     vec3 tangent = normalize(randVec - normal * dot(randVec, normal));
     vec3 bitangent = cross(normal, tangent);
     mat3 tbn = mat3(tangent, bitangent, normal); 
-    
+   
     float viewZ = getLinearDepth(depth);
-    vec3 posV = vec3(v_ViewRay, viewZ);
-    posV.xy *= viewZ;
-    
+    vec3 posV = viewZ * v_ViewRay.xyz;
+
     float AO = 0.0;
 
     for(int i=0;i<KERNEL_SIZE;++i)
     {
         vec3 sample = tbn * u_Kernel[i];
         sample = u_Radius * sample + posV;
-      //  vec3 sample = u_Kernel[i] + posV;
         vec4 offset = vec4(sample, 1.0);
         offset = u_Proj * offset;
         offset.xy /= offset.w;
@@ -60,14 +59,11 @@ void main()
         float sampleDepth = texture(u_Depth, offset.xy).x;
         sampleDepth = getLinearDepth(sampleDepth);    
 
-        if(abs(posV.z - sampleDepth) < u_Radius)
-        {
-            AO += step(sampleDepth, sample.z);
-        }
+        float radiusCheck = abs(posV.z - sampleDepth) < u_Radius ? 1.0 : 0.0;
 
+        //sample z must be less, then sampleDepth, but since we're comparing two negatives, we need to flip a bool expression
+        AO += (sampleDepth > sample.z ? 1.0 : 0.0) * radiusCheck;
     }
-
-    a_SSAO = pow(1.0 - AO/float(KERNEL_SIZE), 1.0);
-
-
+    
+    a_SSAO = 1.0 - AO/float(KERNEL_SIZE);
 }

@@ -15,8 +15,7 @@ struct PointLight
 in vec3 v_LightPosW;
 in vec4 v_ViewRay;
 in vec3 v_TexCoord;
-in vec3 v_ScaleAndTranslateProjs;
-in mat4 v_Proj;
+
 
 uniform mat4 u_Proj;
 uniform vec3 u_ViewPos;
@@ -33,8 +32,7 @@ uniform sampler2D u_Depth;
 vec3 getPosW(float depth, in vec3 viewRay, in mat3 camWorld, in vec3 viewPos)
 {
     float viewZ = NEAR * FAR / (FAR - depth * (FAR + NEAR));
-//    vec2 projs = vec2(u_Proj[2][2], u_Proj[3][2]);
- //   float viewZ = projs.y/(2.0 - depth - 1.0 - projs.x);
+
     vec3 posV = viewRay * viewZ;
     return camWorld * posV + viewPos;
 }

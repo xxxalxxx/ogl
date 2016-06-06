@@ -43,7 +43,7 @@ void main()
     float depth = texture(u_Depth, v_TexCoord).r;
     float ssao = texture(u_SSAO, v_TexCoord).r;
 
-    vec3 ambient = 0.3 * ssao * color.rgb;
+    vec3 ambient = 1.0 * ssao * color.rgb;
     
  //   vec3 viewDir = normalize(u_ViewPos - position);
 // vec3 result = calcDirLight(u_DirLight, viewDir, normal, color.rgb, color.a); 

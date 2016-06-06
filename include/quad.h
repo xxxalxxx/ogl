@@ -18,7 +18,7 @@ public:
 
     void init(const char* texturePath);
     void initBuffers();
-
+    void initWithCornerIndices();
     void update(float dt);
 
     void draw();

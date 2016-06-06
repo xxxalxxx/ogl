@@ -78,7 +78,11 @@ int main()
         pl.push_back(point);
     }
     Technique ssaoTech("shaders/ssao.vert", "shaders/ssao.frag");
-    ssaoTech.setHandleProj().setHandleWorldViewProj();
+    ssaoTech
+        .setHandleProj()
+        .setHandleWorldViewProj()
+        .setHandleView();
+
     std::vector<GLuint> ssaoKernelHandles = ssao.getUniformSampleHandles(ssaoTech.mUniforms.program);
     GLuint ssaoNoiseHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Noise");
     GLuint ssaoDepthHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Depth");
@@ -128,7 +132,7 @@ int main()
 
 
     Quad q;   
-    q.initBuffers();
+    q.initWithCornerIndices();
 
     SkinnedModel sk("res/mesh/dwarf/dwarf.x",
                     "res/mesh/dwarf/",
@@ -218,6 +222,16 @@ int main()
         glm::mat3 camWorld = glm::transpose(glm::mat3(view));
         glm::vec3& eyePos = camera.getEye();
 
+        float w = 1.0f/proj[0].x;
+        float h = 1.0f/proj[1].y;
+        float z = 1000.0f;
+        glm::vec3 transform(w, h, z);
+
+        glm::vec3 tl(-1.0f,  1.0f, -1.0f);
+        glm::vec3 tr( 1.0f,  1.0f, -1.0f);
+        glm::vec3 bl(-1.0f, -1.0f, -1.0f);
+        glm::vec3 br( 1.0f, -1.0f, -1.0f);
+
         engine.pollEvents();
         engine.handleCameraMovement(dt);
         
@@ -265,16 +279,18 @@ int main()
               .setUniformViewPos(eyePos);
         model2.draw(m2Tech);
        
-        skTech.use();
+ /*       skTech.use();
         skTech.setUniformWorldViewProj(viewProj)
               .setUniformViewPos(eyePos);
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
-
+*/
         /*
          * SSAO pass
          *
          */
+        glDepthMask(GL_FALSE);
+        glDisable(GL_DEPTH_TEST);
 
         glBindFramebuffer(GL_FRAMEBUFFER, ssao.mBuffer);
         glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
@@ -298,6 +314,11 @@ int main()
         glActiveTexture(GL_TEXTURE2);
         glUniform1i(ssaoNoiseHandle, 2); 
         glBindTexture(GL_TEXTURE_2D, ssao.mNoise); 
+
+        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[0]"), 1, glm::value_ptr(tl));
+        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[1]"), 1, glm::value_ptr(tr));
+        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[2]"), 1, glm::value_ptr(br));
+        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[3]"), 1, glm::value_ptr(bl));
 
 
         q.draw();
