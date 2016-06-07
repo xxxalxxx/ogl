@@ -132,7 +132,7 @@ int main()
 
 
     Quad q;   
-    q.initWithCornerIndices();
+    q.initBuffers();
 
     SkinnedModel sk("res/mesh/dwarf/dwarf.x",
                     "res/mesh/dwarf/",
@@ -279,12 +279,12 @@ int main()
               .setUniformViewPos(eyePos);
         model2.draw(m2Tech);
        
- /*       skTech.use();
+        skTech.use();
         skTech.setUniformWorldViewProj(viewProj)
               .setUniformViewPos(eyePos);
         sk.update(timer.getCurrentTime());
         sk.draw(skTech);
-*/
+
         /*
          * SSAO pass
          *
@@ -314,12 +314,6 @@ int main()
         glActiveTexture(GL_TEXTURE2);
         glUniform1i(ssaoNoiseHandle, 2); 
         glBindTexture(GL_TEXTURE_2D, ssao.mNoise); 
-
-        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[0]"), 1, glm::value_ptr(tl));
-        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[1]"), 1, glm::value_ptr(tr));
-        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[2]"), 1, glm::value_ptr(br));
-        glUniform3fv(glGetUniformLocation(ssaoTech.mUniforms.program, "u_Corners[3]"), 1, glm::value_ptr(bl));
-
 
         q.draw();
 

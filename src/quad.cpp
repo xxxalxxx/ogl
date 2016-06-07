@@ -59,44 +59,7 @@ void Quad::initBuffers()
     
 }
 
-void Quad::initWithCornerIndices()
-{
-       GLfloat vertices[] = {
-        // Positions           // Texture Coords
-         1.0f,  1.0f, 0.0f,    1.0f, 1.0f, 1.0f, // Top Right
-         1.0f, -1.0f, 0.0f,    1.0f, 0.0f, 2.0f, // Bottom Right
-        -1.0f, -1.0f, 0.0f,    0.0f, 0.0f, 3.0f,// Bottom Left
-        -1.0f,  1.0f, 0.0f,    0.0f, 1.0f, 0.0f  // Top Left 
-    };
 
-    GLuint indices[] = {
-        0, 2, 1, // First Triangle
-        0, 3, 2  // Second Triangle
-    };
-  
-    glGenVertexArrays(1, &mVAO);
-    glGenBuffers(1, &mVBO);
-    glGenBuffers(1, &mEBO);
-
-    glBindVertexArray(mVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, mVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mEBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
-    GLsizei stride = 6*sizeof(GLfloat);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)0);
-    glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, stride, (GLvoid*)(3*sizeof(GLfloat)));
-    glEnableVertexAttribArray(1);
-
-    glBindVertexArray(0);
-
-}
 
 void Quad::initTextures(const char* texturePath)
 {

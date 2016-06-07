@@ -48,6 +48,6 @@ void main()
  //   vec3 viewDir = normalize(u_ViewPos - position);
 // vec3 result = calcDirLight(u_DirLight, viewDir, normal, color.rgb, color.a); 
 
-    gl_FragColor = vec4(vec3(ssao), 1.0); // vec4(ambient + result.rgb, 1.0);
+    gl_FragColor = vec4(result.rgb, 1.0); // vec4(ambient + result.rgb, 1.0);
 }
 
