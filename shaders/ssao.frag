@@ -12,6 +12,7 @@ in mat4 v_Proj;
 
 uniform vec3 u_Kernel[KERNEL_SIZE];
 uniform float u_Radius;
+uniform float u_ScaleSSAO;
 uniform mat4 u_Proj;
 
 uniform sampler2D u_Normal;
@@ -33,9 +34,9 @@ float getLinearDepth(float depth)
 void main()
 {
     vec2 noiseScale = vec2(textureSize(u_Normal, 0))/float(NOISE_SIZE);
-    float depth = texture(u_Depth, v_TexCoord).x;
-    vec2 packedNormal = texture(u_Normal, v_TexCoord).xy;
-    vec3 randVec = texture(u_Noise, v_TexCoord * noiseScale).xyz;
+    float depth = texture(u_Depth, v_TexCoord * u_ScaleSSAO).x;
+    vec2 packedNormal = texture(u_Normal, v_TexCoord * u_ScaleSSAO).xy;
+    vec3 randVec = texture(u_Noise, v_TexCoord  * noiseScale).xyz;
 
     vec3 normal = getNormalW(packedNormal);
     vec3 tangent = normalize(randVec - normal * dot(randVec, normal));
@@ -56,7 +57,7 @@ void main()
         offset.xy /= offset.w;
         offset.xy  = 0.5 * offset.xy + 0.5;        
 
-        float sampleDepth = texture(u_Depth, offset.xy).x;
+        float sampleDepth = texture(u_Depth, offset.xy * u_ScaleSSAO).x;
         sampleDepth = getLinearDepth(sampleDepth);    
 
         float radiusCheck = abs(posV.z - sampleDepth) < u_Radius ? 1.0 : 0.0;

@@ -1,7 +1,7 @@
 #include "g_buffer.h"
 
 
-GBuffer::GBuffer() : mBuffer(0), mPosition(0), mNormal(0), mDepth(0)
+GBuffer::GBuffer() : mBuffer(0), mPosition(0), mNormal(0), mDepth(0), mSSAO(NULL)
 {
 
 }
@@ -71,11 +71,11 @@ bool GBuffer::init(size_t w, size_t h)
 
 void GBuffer::startGeometryPass1()
 {
-    glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
+   glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
 
     GLuint attachments[] = { GL_COLOR_ATTACHMENT0, 
-                             GL_COLOR_ATTACHMENT1, 
-                             GL_COLOR_ATTACHMENT2};
+                             GL_COLOR_ATTACHMENT1,
+                             GL_COLOR_ATTACHMENT2 };
 
     glDrawBuffers(3, attachments);
     
@@ -91,8 +91,9 @@ void GBuffer::endGeometryPass1()
 
 void GBuffer::startStencilPass()
 {
+    glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
+
     glDepthMask(GL_FALSE); //dont upd depth
-    
     
     glEnable(GL_STENCIL_TEST); 
     glDrawBuffer(GL_NONE); //dont draw lights
@@ -114,27 +115,17 @@ void GBuffer::endStencilPass()
 
 void GBuffer::startLightPass()
 {
-    GLuint attachments[] = { GL_COLOR_ATTACHMENT0 };
+    GLuint attachments2[] = { GL_COLOR_ATTACHMENT2 };
 
-    glDrawBuffers(1, attachments);
-
-  //  glDrawBuffer(GL_COLOR_ATTACHMENT5);
-
-  /*  glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mPosition);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, mNormal);
-   */
-
+    glDrawBuffers(1, attachments2);
 
     glStencilFunc(GL_NOTEQUAL, 0, 0xff);
     glDisable(GL_DEPTH_TEST);
 
-    glEnable(GL_BLEND);
-    glBlendEquation(GL_FUNC_ADD);
-    glBlendFunc(GL_ONE, GL_ONE);
+    //blend all lights drawn
+    enableAdditiveBlending();
     
+    //when camera inside volume, back faces must not be culled
     glEnable(GL_CULL_FACE);
     glCullFace(GL_FRONT);
 }
@@ -146,55 +137,45 @@ void GBuffer::endLightPass()
 
 void GBuffer::startGeometryPass2()
 {
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+        
     glCullFace(GL_BACK);
     glDisable(GL_BLEND);
     glDisable(GL_STENCIL_TEST);
-    
-
-    glDepthMask(GL_TRUE);
-    glEnable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-
- //   glDrawBuffer(GL_COLOR_ATTACHMENT5);
-
- /*   glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, mPosition);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, mNormal);
-
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, mColor);
-
-    glActiveTexture(GL_TEXTURE3);
-    glBindTexture(GL_TEXTURE_2D, mDiffuse);
-
-    glActiveTexture(GL_TEXTURE4);
-    glBindTexture(GL_TEXTURE_2D, mSpecular);
-*/
-/*
     glDisable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
+}
+
+void GBuffer::enableAdditiveBlending()
+{
+    glEnable(GL_BLEND); 
     glBlendEquation(GL_FUNC_ADD);
     glBlendFunc(GL_ONE, GL_ONE);
-    
- */
-
 }
 
 void GBuffer::endGeometryPass2(size_t w, size_t h)
 {
-   // glDisable(GL_BLEND);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-   // glBindFramebuffer(GL_READ_FRAMEBUFFER, mBuffer);
-  /*  glReadBuffer(GL_COLOR_ATTACHMENT5); 
+
+    glDepthMask(GL_TRUE);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, mBuffer);
+
     glBlitFramebuffer(0, 0, w, h,
                       0, 0, w, h,
-                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
-*/
-    glDisable(GL_CULL_FACE);
+                      GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE); 
 
 }
+
+
+void GBuffer::setSSAO(SSAO& ssao)
+{
+    mSSAO = &ssao;
+}
+
 
 void GBuffer::unload()
 {

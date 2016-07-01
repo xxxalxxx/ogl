@@ -2,6 +2,10 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
+
+const GLenum TextureManager::mFormats[5] = {0, GL_RED, GL_RG, GL_RGB, GL_RGBA };
+
+
 TextureManager::TextureManager(): mFileSystem(FileSystem::getInstance())
 {
 }
@@ -40,7 +44,7 @@ GLuint TextureManager::load(const char* path, bool gamma /* = false */)
     return load(pathStr, gamma);
 }
 
-GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
+GLuint TextureManager::load(const std::string& path, bool gamma/* = false */)
 {
     LOG("BEFORE PATH");
     LOG(path);
@@ -49,29 +53,17 @@ GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
 
     if(it != mCurrTextureHandles.end())
     {
-        LOG("TEX EXISTS");
+        LOG("TEX EXISTS:" << it->second);
         return it->second;
     }
 
     GLuint textureId;
-    GLenum formats[] = {0, GL_LUMINANCE, GL_LUMINANCE_ALPHA, GL_RGB, GL_RGBA };
-    int w=0, h=0, channels=0;
-    GLenum format;
-    
-    unsigned char* img =  stbi_load(path.c_str(), &w, &h, &channels, 0);// SOIL_load_image(path.c_str(), &w, &h, &channels, SOIL_LOAD_AUTO); 
+    ImageData id;
 
-    LOG("AFTER LOAD:" << channels << " w:" << w << " h" << h);
-    if(!channels || !w || !h)
-    {
-        LOG("ERROR: " << stbi_failure_reason()  << " ch:"<< channels << " w:" << w << "h:" << h);
-        exit(1);
-    }
-    format = formats[channels];
-
-   
+    outImageData(path.c_str(), id);   
     glGenTextures(1, &textureId);
     glBindTexture(GL_TEXTURE_2D, textureId);
-    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, img);
+    glTexImage2D(GL_TEXTURE_2D, 0, id.format, id.w, id.h, 0, id.format, GL_UNSIGNED_BYTE, id.img);
    
     glGenerateMipmap(GL_TEXTURE_2D);	
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
@@ -80,12 +72,72 @@ GLuint TextureManager::load(const std::string& path, bool gamma/*  = false */)
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glBindTexture(GL_TEXTURE_2D, 0);
 
-    mCurrTextureHandles.insert(tex_pair_t(path, textureId ));
-    stbi_image_free(img);
+    mCurrTextureHandles.insert(tex_pair_t(path, textureId));
+    freeImage(id);
+    LOG("TEXID:" << textureId);
+    return textureId;
+}
+
+GLuint TextureManager::loadCubeMap(
+            const std::string& posX, const std::string& negX, 
+            const std::string& posY, const std::string& negY, 
+            const std::string& posZ, const std::string& negZ, 
+            bool gamma /* = false */)
+{
+    GLuint textureId;
+
+    glGenTextures(1, &textureId);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureId);
+
+    loadCubeMapFace(posX, GL_TEXTURE_CUBE_MAP_POSITIVE_X);
+    loadCubeMapFace(negX, GL_TEXTURE_CUBE_MAP_NEGATIVE_X);
+    
+    loadCubeMapFace(posY, GL_TEXTURE_CUBE_MAP_POSITIVE_Y);
+    loadCubeMapFace(negY, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y);
+    
+    loadCubeMapFace(posZ, GL_TEXTURE_CUBE_MAP_POSITIVE_Z);
+    loadCubeMapFace(negZ, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
     return textureId;
 }
 
+
+void TextureManager::loadCubeMapFace(const std::string& path, GLenum face, bool gamma /* = false */)
+{
+    ImageData id;
+    outImageData(path.c_str(), id);
+    glTexImage2D(face, 0, id.format, id.w, id.h, 0, id.format, GL_UNSIGNED_BYTE, id.img);
+    freeImage(id);   
+
+}
+
+
+void TextureManager::outImageData(const char* path, ImageData& id)
+{
+    id.img = stbi_load(path, &(id.w), &(id.h), &(id.channels), 0);
+
+    if(!id.channels || !id.w || !id.h)
+    {
+        LOG("ERROR: " << stbi_failure_reason() << "path:" << path  << " ch:"<< id.channels << " w:" << id.w << "h:" << id.h);
+        exit(1);
+    }
+
+    id.format = mFormats[id.channels];
+  //  LOG("CHANNELS:" << id.channels);
+}
+
+void TextureManager::freeImage(ImageData& id)
+{
+    stbi_image_free(id.img);
+}
 
 void TextureManager::unload()
 {
@@ -98,21 +150,3 @@ void TextureManager::unload()
 }
 
 
-/*ilGenImages(1, &imgId);
-
-ilBindImage(imgId);
-
-ilEnable(IL_ORIGIN_SET);
-ilOriginFunc(IL_ORIGIN_LOWER_LEFT);
-
-ilLoadImage(path.c_str());
-
-ilConvertImage(IL_RGB, GL_UNSIGNED_BYTE); 
-
-img = ilGetData();
-w = ilGetInteger(IL_IMAGE_WIDTH);
-h = ilGetInteger(IL_IMAGE_HEIGHT);
-type = ilGetInteger(IL_IMAGE_TYPE);
-format = ilGetInteger(IL_IMAGE_FORMAT);
-ilBindImage(0);
-ilDeleteImage(imgId);*/

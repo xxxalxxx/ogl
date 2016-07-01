@@ -14,8 +14,7 @@ void main()
     float d = texture(u_Depth,t).r;
  //  vec3 p = texture(u_Position, t).xyz;
  //   vec3 n = texture(u_Normal, t).xyz;
-    gl_FragColor = vec4(d,d,d,1.0);
-// a_Diffuse =  vec3(0.0,1.0,0.0);
-   // a_Specular = n;
+    gl_FragColor = vec4(0.0, 1.0, 0.0,1.0);
+
 }
 

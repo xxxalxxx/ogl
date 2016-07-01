@@ -244,6 +244,29 @@ Technique& Technique::setHandlePointLight()
     return *this;
 }
 
+
+Technique& Technique::setHandleSpotLight()
+{
+    std::string name("light.");
+
+    mSpotLightTech.handlePosition = getUniformHandle( name + "position");
+    mSpotLightTech.handleDirection = getUniformHandle( name + "direction");
+    
+    mSpotLightTech.handleCutoff      = getUniformHandle(name + "cutoff");
+    mSpotLightTech.handleCutoffStart = getUniformHandle(name + "cutoffStart");       
+    mSpotLightTech.handleExponent    = getUniformHandle(name + "exponent");
+
+
+    mSpotLightTech.handleQuadratic = getUniformHandle(name + "quadratic");
+    mSpotLightTech.handleLinear = getUniformHandle(name + "linear");
+    mSpotLightTech.handleConstant = getUniformHandle(name + "constant");
+
+    mSpotLightTech.handleColor = getUniformHandle(name + "color");
+
+    return *this;
+}
+
+
 Technique& Technique::setHandleSpotLights(size_t numLights)
 {
     mSpotLightsTechs.clear();
@@ -311,10 +334,6 @@ Technique& Technique::setHandlePointLights(size_t numLights)
 Technique& Technique::setUniformDirectionalLight(const DirectionalLight& dirLight)
 {
     setUniformVector3(mDirLightTech.handleDirection, dirLight.direction);
-
-   // setUniformVector(mDirLightTech.handleAmbient, dirLight.ambient);
-   // setUniformVector(mDirLightTech.handleSpecular, dirLight.specular);
-   // setUniformVector(mDirLightTech.handleDiffuse, dirLight.diffuse);
     setUniformVector3(mDirLightTech.handleColor, dirLight.color);
 
     return *this;
@@ -334,6 +353,30 @@ Technique& Technique::setUniformPointLight(const PointLight& point)
    
     return *this;
 }
+
+
+
+Technique& Technique::setUniformSpotLight(const SpotLight& light)
+{
+    setUniformVector3(mSpotLightTech.handlePosition, light.position);
+    setUniformVector3(mSpotLightTech.handleDirection, light.direction);
+    
+    setUniformFloat(mSpotLightTech.handleCutoff, light.cutoff);
+    setUniformFloat(mSpotLightTech.handleCutoffStart, light.cutoffStart);
+    setUniformFloat(mSpotLightTech.handleExponent, light.exponent);
+
+    setUniformFloat(mSpotLightTech.handleQuadratic, light.quadratic);
+    setUniformFloat(mSpotLightTech.handleLinear, light.linear);
+    setUniformFloat(mSpotLightTech.handleConstant, light.constant);
+
+    setUniformVector3(mSpotLightTech.handleColor, light.color);
+
+    setUniformFloat(mSpotLightTech.handleSpecPower, light.specPower);
+   
+    return *this;
+}
+
+
 
 Technique& Technique::setHandleLights(bool setHandleDirLight, size_t numSpotLights, size_t numPointLights)
 {

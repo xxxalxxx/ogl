@@ -1,4 +1,5 @@
 #include <iostream>
+#include <math.h>
 
 #include "engine.h"
 #include "file_system.h"
@@ -15,6 +16,9 @@
 #include "glm/gtx/string_cast.hpp"
 #include "sphere.h"
 #include "ssao.h"
+#include "cone.h"
+#include "skybox.h"
+#include "heightmap.h"
 
 int main()
 {
@@ -30,14 +34,19 @@ int main()
     GBuffer gBuffer;
     if(!gBuffer.init(window.getWidth(), window.getHeight())) return -1;
     SSAO ssao;
-    if(!ssao.init(window.getWidth(), window.getHeight())) return -1;
+    if(!ssao.init(window.getWidth(), window.getHeight(), 1.0f, 1.0f)) return -1;
+    gBuffer.setSSAO(ssao);
 
+ 
 
     size_t nl = 15;
     float min = 0.0f, max = 1.0f;
     float minPos = 1.0f, maxPos = 25.0f;
-    float minRad = 50.0f, maxRad = 150.0f;
-    
+    float minRad = 120.0f, maxRad = 150.0f;
+    float minAngle = 0.9f * M_PI_4, maxAngle = M_PI_4;
+    glm::vec3 down(0.0f, -1.0f, 0.0f); 
+    glm::vec3 up(0.0f, 1.0f, 0.0f);    
+
     DirectionalLight dl;
     dl.direction = Utils::getRandVec3(minPos,maxPos);
  //   dl.color = Utils::getRandVec3(min,max);
@@ -45,27 +54,50 @@ int main()
 
     std::vector<SpotLight> sl;
     std::vector<PointLight> pl;
+    
+    std::vector<glm::mat4> slScales;
+    std::vector<glm::mat4> slWorlds;
+    std::vector<glm::mat4> slWVP;
+    std::vector<glm::mat4> slRotations;
+
     std::vector<glm::mat4> plScales;
     std::vector<glm::mat4> plWorlds;
     std::vector<glm::mat4> plWVP;
 
     for(size_t i=0;i<nl;++i)
     {
+        float angle = Utils::randF(minAngle, maxAngle);
+        SpotLight spot(
+                    Utils::randF(minRad, maxRad),
+                    Utils::getRandVec3(min, max),
+                    angle, 0.1f * angle
+                );
 
-        SpotLight spot;
         spot.position = Utils::getRandVec3(minPos, maxPos);
-        spot.direction = Utils::getRandVec3(minPos, maxPos);
-        glm::normalize(spot.direction);
-        spot.color = Utils::getRandVec3(min, max);
+        spot.direction = glm::normalize(Utils::getRandVec3(-1.0f, 1.0f));
+        float spotScaleY = spot.getRadius();
+        float spotScaleXZ = spotScaleY * atan(0.5f * spot.cutoff);
+        glm::vec3 axis = glm::cross(down, spot.direction);
+        slScales.push_back(glm::mat4());
+        slRotations.push_back(glm::mat4());
+        slWorlds.push_back(glm::mat4(1.0f));
+        slWVP.push_back(glm::mat4(1.0f));
         
+        glm::mat4& scaleSlMtx = slScales.back();
+        glm::vec3 scaleSlVec = glm::vec3(spotScaleXZ,spotScaleY,spotScaleXZ);
+        scaleSlMtx = glm::scale(scaleSlMtx, scaleSlVec);
+        LOG(glm::to_string(scaleSlMtx));
+        glm::mat4& rotMtx = slRotations.back();
+        glm::vec3 bi = glm::cross(axis, spot.direction);
+        glm::mat3 rotmat = glm::mat3(axis, -spot.direction, bi);
 
-        PointLight point(Utils::randF(minRad, maxRad),Utils::getRandVec3(min,max) );
+        rotMtx = glm::mat4(rotmat);
+        
+        PointLight point(Utils::randF(minRad, maxRad), Utils::getRandVec3(min,max) );
         point.position = Utils::getRandVec3(minPos, maxPos);
 
-
         float scale = point.getRadius();
-        LOG(scale);
-
+        
         plScales.push_back(glm::mat4());
         plWorlds.push_back(glm::mat4(1.0f));
 
@@ -77,6 +109,9 @@ int main()
         sl.push_back(spot);
         pl.push_back(point);
     }
+
+
+    
     Technique ssaoTech("shaders/ssao.vert", "shaders/ssao.frag");
     ssaoTech
         .setHandleProj()
@@ -88,15 +123,17 @@ int main()
     GLuint ssaoDepthHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Depth");
     GLuint ssaoNormalHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Normal");
     GLuint ssaoRadiusHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_Radius");
-
-    Technique ssaoBlurTech("shaders/quad.vert", "shaders/ssao_blur.frag");
+    GLuint ssaoScaleSSAOHandle = glGetUniformLocation(ssaoTech.mUniforms.program, "u_ScaleSSAO");
+    
+    Technique ssaoBlurTech("shaders/ssao_blur.vert", "shaders/ssao_blur.frag");
     ssaoBlurTech.setHandleWorldViewProj();
     GLuint ssaoBlurSSAOHandle = glGetUniformLocation(ssaoBlurTech.mUniforms.program, "u_SSAO");
-    
-    Technique stencilTech("shaders/ssao.vert", "shaders/base.frag");
+    GLuint ssaoBlurScaleSSAOHandle = glGetUniformLocation(ssaoBlurTech.mUniforms.program, "u_ScaleSSAO");
+
+    Technique stencilTech("shaders/base.vert", "shaders/base.frag");
     stencilTech.setHandleWorldViewProj().setHandlePointLight();
 
-    Technique sTech("shaders/deferred_light.vert", "shaders/deferred_light.frag");
+    Technique sTech("shaders/deferred_point_light.vert", "shaders/deferred_point_light.frag");
     sTech
         .setHandleWorldViewProj()
         .setHandlePointLight()
@@ -111,10 +148,30 @@ int main()
     GLuint sTechNormalHandle = glGetUniformLocation(sTech.mUniforms.program, "u_Normal");
 
     Sphere s;
-    s.init(25, 25, 1.0f);
+    if(!s.init(25, 25, 1.0f)) return -1;
+    
+    Cone cone;
+    if(!cone.init(25)) return -1;
+
+    Technique spotLightTech("shaders/deferred_spot_light.vert", "shaders/deferred_spot_light.frag");
+    spotLightTech
+        .setHandleWorldViewProj()
+        .setHandleSpotLight()
+        .setHandleViewPos()
+        .setHandleView()
+        .setHandleProj()
+        .setHandleWorld();
+
+    GLuint spotLightTechCamWorldHandle = glGetUniformLocation(spotLightTech.mUniforms.program, "u_CamWorld"); 
+    GLuint spotLightTechDepthHandle = glGetUniformLocation(spotLightTech.mUniforms.program, "u_Depth");
+    GLuint spotLightTechColorHandle = glGetUniformLocation(spotLightTech.mUniforms.program, "u_Color");
+    GLuint spotLightTechNormalHandle = glGetUniformLocation(spotLightTech.mUniforms.program, "u_Normal");
 
     Technique q2Tech("shaders/quad.vert", "shaders/deferred_geometry3.frag");
-    q2Tech.setHandleWorldViewProj().setHandleDirectionalLight().setHandleViewPos();
+    q2Tech
+        .setHandleWorldViewProj()
+        .setHandleDirectionalLight()
+        .setHandleViewPos();
 
     Technique qTech("shaders/quad.vert", "shaders/deferred_geometry2.frag");
     qTech
@@ -129,8 +186,6 @@ int main()
     GLuint qTechSSAOHandle = glGetUniformLocation(qTech.mUniforms.program, "u_SSAO");
 
 
-
-
     Quad q;   
     q.initBuffers();
 
@@ -143,10 +198,11 @@ int main()
     SkinnedModelTechnique skTech("shaders/skinned_model.vert",
                                  "shaders/deferred_geometry.frag");
 
-    skTech.setHandleBoneTransforms(sk.mNumBones)
-          .setHandleMaterials(sk.mMaterials)
-          .setHandleWorldViewProj()
-         .setHandleWorld();
+    skTech
+        .setHandleBoneTransforms(sk.mNumBones)
+        .setHandleMaterials(sk.mMaterials)
+        .setHandleWorldViewProj()
+        .setHandleWorld();
     
     Model model("res/mesh/guard/boblampclean.md5mesh",
                 "res/mesh/guard/",
@@ -169,26 +225,47 @@ int main()
 
     ModelTechnique m2Tech("shaders/model.vert", 
                           "shaders/deferred_geometry.frag");
-    m2Tech.setHandleMaterials(model2.mMaterials)
-         .setHandleWorldViewProj()
-         .setHandleWorld()
-         .setHandleViewPos();
+    m2Tech
+        .setHandleMaterials(model2.mMaterials)
+        .setHandleWorldViewProj()
+        .setHandleWorld()
+        .setHandleViewPos();
 
     Timer& timer = engine.getTimer();
     Camera& camera = engine.getCamera();
     glm::mat4& proj = camera.getProj();
     glm::mat4& view = camera.getView();
-    
     glm::mat4 world = glm::mat4(1.0f);
   
+    Skybox skybox;
+    skybox.init();
+
+    Technique cubeMapTech("shaders/cubemap.vert",
+                         "shaders/cubemap.frag");
+
+    FileSystem& fs = engine.getFileSystem();
+    TextureManager& textureManager = TextureManager::getInstance();
+    GLuint cubeMapWVPHandle = glGetUniformLocation(cubeMapTech.mUniforms.program, "u_WVP");
+    GLuint cubeMapSamplerHandle = glGetUniformLocation(cubeMapTech.mUniforms.program, "u_Sampler");
+    GLuint cubeMapTex = textureManager.loadCubeMap(
+                fs.getAbsPath("res/cubemap/mp_plains/plains-of-abraham_lf.tga"),
+                fs.getAbsPath("res/cubemap/mp_plains/plains-of-abraham_rt.tga"),
+                fs.getAbsPath("res/cubemap/mp_plains/plains-of-abraham_up.tga"),
+                fs.getAbsPath("res/cubemap/mp_plains/plains-of-abraham_dn.tga"),
+                fs.getAbsPath("res/cubemap/mp_plains/plains-of-abraham_ft.tga"),
+                fs.getAbsPath("res/cubemap/mp_plains/plains-of-abraham_bk.tga")
+    );
+
     q2Tech.use();
-    q2Tech.setUniformWorldViewProj(world)
+    q2Tech
+        .setUniformWorldViewProj(world)
         .setUniformDirectionalLight(dl);
 
     qTech.use();
-    qTech.setUniformWorldViewProj(world)
+    qTech
+        .setUniformWorldViewProj(world)
         .setUniformDirectionalLight(dl);
-    
+
     skTech.use();
     skTech.setUniformWorld(world);
 
@@ -201,17 +278,44 @@ int main()
     ssaoTech.use();
     ssaoTech.setUniformWorldViewProj(world);
     glUniform1f(ssaoRadiusHandle, 1.0f);
+    glUniform1f(ssaoScaleSSAOHandle, 1.0f/ssao.mScaleSSAO);
+
     ssao.setUniformSampleHandles(ssaoKernelHandles);
 
     ssaoBlurTech.use();    
     ssaoBlurTech.setUniformWorldViewProj(world);
-
-    LOG(window.getWidth() << " " << window.getHeight());
+    glUniform1f(ssaoBlurScaleSSAOHandle, ssao.mScaleSSAO/ssao.mScaleBlurSSAO/ssao.mScaleSSAO);
 
    // glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+   
+
+    HeightMap hm;
+    std::vector<HeightMap::Layer> layers;
+    HeightMap::Layer l1("res/heightmap/hm1/sand.jpg", 0.2f);
+    HeightMap::Layer l2("res/heightmap/hm1/sand_grass.jpg", 0.5f);
+    HeightMap::Layer l3("res/heightmap/hm1/rocks.jpg", 1.0f);
+
+    layers.push_back(l1);
+    layers.push_back(l2);
+    layers.push_back(l3);
+
+    glm::mat4 heightMapScale;
+    heightMapScale = glm::scale(heightMapScale, glm::vec3(50.0f, 10.0f, 50.0f));
+
+
+    Technique heightMapTech("shaders/heightmap.vert", "shaders/heightmap.frag");
+    heightMapTech        
+        .setHandleWorldViewProj()
+        .setHandleSampler();
+
+    hm.init("res/heightmap/hm1/hm.jpg",
+            layers,
+            NULL,
+            HeightMapFlag_GEN_NORMALS | HeightMapFlag_USE_ABS_PATH     
+        );
 
     float t = 0.0f; 
-
+    
     while(engine.windowIsOpen())
     {  
         float dt = timer.tick();
@@ -222,16 +326,6 @@ int main()
         glm::mat3 camWorld = glm::transpose(glm::mat3(view));
         glm::vec3& eyePos = camera.getEye();
 
-        float w = 1.0f/proj[0].x;
-        float h = 1.0f/proj[1].y;
-        float z = 1000.0f;
-        glm::vec3 transform(w, h, z);
-
-        glm::vec3 tl(-1.0f,  1.0f, -1.0f);
-        glm::vec3 tr( 1.0f,  1.0f, -1.0f);
-        glm::vec3 bl(-1.0f, -1.0f, -1.0f);
-        glm::vec3 br( 1.0f, -1.0f, -1.0f);
-
         engine.pollEvents();
         engine.handleCameraMovement(dt);
         
@@ -239,11 +333,18 @@ int main()
         {
             for(size_t i=0;i<nl;++i)
             {
-                sl[i].position =  glm::rotate(sl[i].position, dt, glm::vec3(0.0f,1.0f,0.0f));
-                pl[i].position = glm::rotate(pl[i].position,Utils::randF(min,max) *  dt, glm::vec3(0.0f,1.0f,0.0f));
+                pl[i].position = glm::rotate(pl[i].position, 0.3f * Utils::randF(min,max) *  dt, glm::vec3(0.0f,1.0f,0.0f));
                 glm::mat4 translate = glm::translate(pl[i].position);
                 plWorlds[i] = translate * plScales[i];
                 plWVP[i] = viewProj *  translate;
+
+                sl[i].position =  glm::rotate(sl[i].position, 1.5f *  Utils::randF(min,max) * dt, glm::vec3(0.0f,1.0f,0.0f));
+                glm::mat4 w = glm::translate(sl[i].position);
+                glm::mat4 r = glm::mat4_cast(glm::angleAxis( 0.5f * Utils::randF(min,max) *  dt, glm::vec3(0.0f,1.0f,0.0f)));
+                slRotations[i] =  r * slRotations[i];
+                sl[i].direction = glm::vec3( r * glm::vec4(sl[i].direction, 0.0f) ); 
+                slWorlds[i] = w * slRotations[i] * slScales[i];
+                slWVP[i] = viewProj * slWorlds[i];
             }
 
             t = 0.0f;
@@ -256,18 +357,7 @@ int main()
          *
          */
 
-        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
-
-        GLuint attachments[] = { GL_COLOR_ATTACHMENT0, 
-                                 GL_COLOR_ATTACHMENT1,
-                                 GL_COLOR_ATTACHMENT2 };
-
-        glDrawBuffers(3, attachments);
-        
-        glDepthMask(GL_TRUE);
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-        glEnable(GL_DEPTH_TEST);
-
+        gBuffer.startGeometryPass1();
 
         mTech.use();
         mTech.setUniformWorldViewProj(viewProj)
@@ -289,19 +379,10 @@ int main()
          * SSAO pass
          *
          */
-        glDepthMask(GL_FALSE);
-        glDisable(GL_DEPTH_TEST);
-
-        glBindFramebuffer(GL_FRAMEBUFFER, ssao.mBuffer);
-        glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-
         ssaoTech.use();
         ssaoTech.setUniformProj(proj);
 
-        GLuint attachmentsSSAO[] = { GL_COLOR_ATTACHMENT0 };
-
-        glDrawBuffers(1, attachmentsSSAO);
-
+        ssao.startSSAOPass();
 
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(ssaoNormalHandle, 0); 
@@ -320,11 +401,7 @@ int main()
 
         ssaoBlurTech.use();
 
-
-        GLuint attachmentsSSAOBlur[] = { GL_COLOR_ATTACHMENT1 };
-
-        glDrawBuffers(1, attachmentsSSAOBlur);
-
+        ssao.startSSAOBlurPass();
 
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(ssaoBlurSSAOHandle, 0); 
@@ -332,10 +409,7 @@ int main()
 
 
         q.draw();
-
-
-        glBindFramebuffer(GL_FRAMEBUFFER, gBuffer.mBuffer);
-
+ 
         /*
          * stencil pass
          *
@@ -343,32 +417,27 @@ int main()
 
         stencilTech.use();
 
-        glDepthMask(GL_FALSE); //dont upd depth
-    
-        glEnable(GL_STENCIL_TEST); 
-        glDrawBuffer(GL_NONE); //dont draw lights
-        glEnable(GL_DEPTH_TEST); //depth test for incrementing
-        glDisable(GL_CULL_FACE); //dont cull back or front faces for incrementing
-        
-        glClear(GL_STENCIL_BUFFER_BIT);
-        
-        glStencilFunc(GL_ALWAYS, 0, 0);
-        
-        glStencilOpSeparate(GL_BACK, GL_KEEP, GL_INCR_WRAP, GL_KEEP);
-        glStencilOpSeparate(GL_FRONT, GL_KEEP, GL_DECR_WRAP, GL_KEEP);
-
+        gBuffer.startStencilPass();
         
         for(size_t i=0;i<pl.size();++i)
         {
-            glm::mat4 mvp = plWVP[i] * plScales[i];
-            stencilTech.setUniformWorldViewProj(mvp);
+            glm::mat4 wvp = plWVP[i] * plScales[i];
+            stencilTech.setUniformWorldViewProj(wvp);
             s.draw();
+        }
+
+        for(size_t i=0;i<sl.size();++i)
+        {
+            stencilTech.setUniformWorldViewProj(slWVP[i]);            
+         //   cone.draw(); 
         }
 
         /*
          * light pass
          *
          */
+        
+        gBuffer.startLightPass();
 
         sTech.use();
         sTech.setUniformViewPos(eyePos);
@@ -388,22 +457,7 @@ int main()
         glUniform1i(sTechDepthHandle, 2); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth); 
 
-        GLuint attachments2[] = { GL_COLOR_ATTACHMENT2 };
-
-        glDrawBuffers(1, attachments2);
-
-        glStencilFunc(GL_NOTEQUAL, 0, 0xff);
-        glDisable(GL_DEPTH_TEST);
-
-        //blend all lights drawn
-        glEnable(GL_BLEND); 
-        glBlendEquation(GL_FUNC_ADD);
-        glBlendFunc(GL_ONE, GL_ONE);
-        
-        //when camera inside volume, back faces must not be culled
-        glEnable(GL_CULL_FACE);
-        glCullFace(GL_FRONT);
-        
+      
         for(size_t i=0;i<pl.size();++i)
         {
             glm::mat4 mvp = plWVP[i] * plScales[i];
@@ -414,21 +468,47 @@ int main()
         }
 
 
+        spotLightTech.use();
+        
+        spotLightTech.setUniformViewPos(eyePos);
+        spotLightTech.setUniformProj(proj);
+        spotLightTech.setUniformView(view);
+        glUniformMatrix3fv(spotLightTechCamWorldHandle, 1, GL_FALSE, glm::value_ptr(camWorld));
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(spotLightTechNormalHandle, 0); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
+         
+        glActiveTexture(GL_TEXTURE1);
+        glUniform1i(spotLightTechColorHandle, 1); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mColor); 
+  
+        glActiveTexture(GL_TEXTURE2);
+        glUniform1i(spotLightTechDepthHandle, 2); 
+        glBindTexture(GL_TEXTURE_2D, gBuffer.mDepth); 
+
+
+        for(size_t i=0;i<sl.size();++i)
+        {
+            spotLightTech.setUniformWorldViewProj(slWVP[i]);     
+            spotLightTech.setUniformWorld(slWorlds[i]);
+            spotLightTech.setUniformSpotLight(sl[i]);
+
+           // cone.draw();
+        }
+
+
      
         /*
          * geometry 2
          *
          */
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
         qTech.use();
         qTech.setUniformViewPos(eyePos);
-        
-        glCullFace(GL_BACK);
-        glDisable(GL_BLEND);
-        glDisable(GL_STENCIL_TEST);
-        glDisable(GL_DEPTH_TEST);
-       
+
+        gBuffer.startGeometryPass2();
+
         glActiveTexture(GL_TEXTURE0);
         glUniform1i(qTechNormalHandle, 0); 
         glBindTexture(GL_TEXTURE_2D, gBuffer.mNormal);
@@ -456,19 +536,7 @@ int main()
          *
          */
 
-        glDepthMask(GL_TRUE);
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer.mBuffer);
-
-        glBlitFramebuffer(0, 0, window.getWidth(), window.getHeight(),
-                          0, 0, window.getWidth(), window.getHeight(),
-                         GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        glDepthMask(GL_TRUE);
-        glEnable(GL_DEPTH_TEST);
-
-        //back faces still culled
+        gBuffer.endGeometryPass2(window.getWidth(), window.getHeight());
         
         /*
          * after deferred
@@ -485,6 +553,39 @@ int main()
             q2Tech.setUniformWorldViewProj(plWVP[i]);
             q.draw();
         }
+
+
+        glDepthFunc(GL_LEQUAL); 
+        cubeMapTech.use();
+
+        glActiveTexture(GL_TEXTURE0);
+        glUniform1i(cubeMapSamplerHandle, 0); 
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubeMapTex);
+
+
+        glm::mat4 cubeMapWVP = view;
+        cubeMapWVP[3] = glm::vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        cubeMapWVP = proj * cubeMapWVP;
+
+        glUniformMatrix4fv(cubeMapWVPHandle, 1, GL_FALSE, glm::value_ptr(cubeMapWVP));
+
+        skybox.draw();
+        glDepthFunc(GL_LESS); 
+
+
+        heightMapTech.use();
+        glm::mat4 heightMapMtx = viewProj * heightMapScale;
+        heightMapTech.setUniformWorldViewProj(heightMapMtx);
+        
+        glActiveTexture(GL_TEXTURE0);
+        heightMapTech.setUniformSampler(0); 
+        glBindTexture(GL_TEXTURE_2D, hm.mTexture);
+
+        hm.draw();
+    
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
         engine.swapBuffers();
     }
 

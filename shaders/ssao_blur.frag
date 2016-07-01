@@ -20,6 +20,6 @@ void main()
             result += texture(u_SSAO, v_TexCoord + offset).r;
         }
     }
-    
+   // a_BlurredSSAO  = texture(u_SSAO, v_TexCoord * 2.0).r;
     a_BlurredSSAO = result / float(BLUR_SIZE * BLUR_SIZE);
 }

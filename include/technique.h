@@ -96,6 +96,7 @@ protected:
     DirectionalLightTechnique mDirLightTech;
     PointLightTechnique mPointLightTech;
     SpotLightTechnique mSpotLightTech;
+
     std::vector<PointLightTechnique> mPointLightTechs;
     std::vector<SpotLightTechnique> mSpotLightsTechs;
 private:

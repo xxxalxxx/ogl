@@ -10,10 +10,19 @@ SSAO::~SSAO()
 
 }
 
-bool SSAO::init(size_t w, size_t h)
+bool SSAO::init(size_t w, size_t h, float scaleSSAO, float scaleBlurSSAO)
 {
-    if(!w || !h) return false;
+    if(!(w & h) || !scaleSSAO || !scaleBlurSSAO) return false;
     
+    mScaleSSAO = fabs(scaleSSAO);
+    mScaleBlurSSAO = fabs(scaleBlurSSAO);
+
+    size_t wSSAO = (size_t) ((float)w*mScaleSSAO);
+    size_t hSSAO  = (size_t) ((float)h*mScaleSSAO);
+    
+    size_t wBlurSSAO = (size_t) ((float)w*mScaleBlurSSAO);
+    size_t hBlurSSAO = (size_t) ((float)h*mScaleBlurSSAO);
+
     initNoiseTexture();
     initKernel();
 
@@ -22,14 +31,14 @@ bool SSAO::init(size_t w, size_t h)
 
     glGenTextures(1, &mSSAO);
     glBindTexture(GL_TEXTURE_2D, mSSAO);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, wSSAO, hSSAO, 0, GL_RED, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, mSSAO, 0);
 
     glGenTextures(1, &mBlurredSSAO);
     glBindTexture(GL_TEXTURE_2D, mBlurredSSAO);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, wBlurSSAO, hBlurSSAO, 0, GL_RED, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, mBlurredSSAO, 0);
@@ -122,3 +131,29 @@ void SSAO::setUniformSampleHandles(std::vector<GLuint>& kernelSampleHandles)
         glUniform3fv(kernelSampleHandles[i], 1, glm::value_ptr(mKernelSamples[i]));
    } 
 }
+
+void SSAO::startSSAOPass()
+{
+    glDepthMask(GL_FALSE);
+    glDisable(GL_DEPTH_TEST);
+
+    glBindFramebuffer(GL_FRAMEBUFFER, mBuffer);
+    glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+
+
+    GLuint attachmentsSSAO[] = { GL_COLOR_ATTACHMENT0 };
+
+    glDrawBuffers(1, attachmentsSSAO);
+
+}
+
+void SSAO::startSSAOBlurPass()
+{
+
+    GLuint attachmentSSAOBlur[] = { GL_COLOR_ATTACHMENT1 };
+
+    glDrawBuffers(1, attachmentSSAOBlur);
+
+
+}
+

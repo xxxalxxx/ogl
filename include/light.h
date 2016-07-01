@@ -41,6 +41,7 @@ struct SpotLight : public PointLight
 {
     SpotLight();
     SpotLight(float radius);
+    SpotLight(float radius, const glm::vec3& color, float cutoff, float cutoffStart);
     glm::vec3 direction;
 
     float cutoff, cutoffStart; 

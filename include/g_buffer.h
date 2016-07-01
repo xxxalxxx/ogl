@@ -4,7 +4,7 @@
 #include <vector>
 #include <GL/glew.h>
 #include "utils.h"
-
+#include "ssao.h"
 
 class GBuffer
 {
@@ -13,6 +13,8 @@ public:
     virtual ~GBuffer();
     
     bool init(size_t w, size_t h); 
+
+    void setSSAO(SSAO& ssao);
 
     void startGeometryPass1();
     void endGeometryPass1();
@@ -33,26 +35,10 @@ private:
     void enableAdditiveBlending();
     void enableTextures();
 
+    SSAO* mSSAO;
 
 
 };
 
-
-
-
-class GBufferManager
-{
-public:
-    GBufferManager();
-    virtual ~GBufferManager();
-
-  //  GBuffer& getNewGBugger
-    GBuffer& getGBuffer(size_t i, GBuffer* ref);
-private:
-
-
-    std::vector<GBuffer> mGBuffers;
-
-};
 
 #endif

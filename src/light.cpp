@@ -46,6 +46,11 @@ SpotLight::SpotLight(float radius): cutoff(M_PI_4), cutoffStart(0.66f * M_PI_4)
 
 }
 
+SpotLight::SpotLight(float radius, const glm::vec3& color, float cut, float cutStart): PointLight(radius, color), cutoff(cut), cutoffStart(cutStart), exponent(1.0f)
+{
+
+}
+
 void PointLight::setAttenuation(float newQuadratic, float newLinear, float newConstant)
 {
     quadratic = newQuadratic;
